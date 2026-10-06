@@ -1,0 +1,136 @@
+<div style="
+    font-weight: bold;
+    font-size: 11pt;
+    margin-bottom: 2mm;
+    text-transform: uppercase;
+  ">
+  PT METROPOLITAN RETAILMART
+</div>
+
+<div style="display: flex; justify-content: space-between">
+  <div id="doc-logo"></div>
+  <div id="doc-title">title</div>
+</div>
+<hr />
+
+<div id="doc-boundary">
+  <div style="margin: 3mm 5mm 1mm 5mm; font-weight: bold; font-size: 10pt">
+    <!-- SECTION Partner -->
+  </div>
+  <div id="doc-header">
+    <div class="prn-tbl-label" style="grid-row: 1; grid-column: 1">ID</div>
+    <div class="prn-tbl-value" style="grid-row: 1; grid-column: 2">
+      {{agreement_id}}
+    </div>
+    <div class="prn-tbl-label" style="grid-row: 1; grid-column: 3">Date</div>
+    <div class="prn-tbl-value" style="grid-row: 1; grid-column: 4">
+      {{agreement_date}}
+    </div>
+
+    <div class="prn-tbl-label" style="grid-row: 2; grid-column: 1">Partner</div>
+    <div class="prn-tbl-value" style="grid-row: 2; grid-column: 2">
+      {{partner_name}}
+    </div>
+    <div class="prn-tbl-label" style="grid-row: 2; grid-column: 3">Site</div>
+    <div class="prn-tbl-value" style="grid-row: 2; grid-column: 4">
+      {{site_name}}
+    </div>
+
+    <div class="prn-tbl-label" style="grid-row: 3; grid-column: 1">Start</div>
+    <div class="prn-tbl-value" style="grid-row: 3; grid-column: 2">
+      {{agreement_datestart}}
+    </div>
+    <div class="prn-tbl-label" style="grid-row: 3; grid-column: 3">End</div>
+    <div class="prn-tbl-value" style="grid-row: 3; grid-column: 4">
+      {{agreement_dateend}}
+    </div>
+
+    <div class="prn-tbl-label" style="grid-row: 4; grid-column: 1">Desc</div>
+    <div class="prn-tbl-value" style="grid-row: 4; grid-column: 2 / span 3">
+      {{agreement_desc}}
+    </div>
+  </div>
+
+  <div style="margin: 5mm 5mm 1mm 5mm; font-weight: bold; font-size: 10pt">
+    <!-- SECTION Margin -->
+  </div>
+  <table id="doc-detil" class="tableitem" cellpadding="0" cellspacing="0">
+    <thead id="doc-detil-header">
+      <tr>
+        <th name="no" class="rowheader" style="width: 1cm; text-align: center">
+          No
+        </th>
+        <th name="descr" class="rowheader" style="text-align: left">Rentang</th>
+        <th name="value" class="rowheader" style="width: 4cm; text-align: center">
+          Margin (%)
+        </th>
+      </tr>
+    </thead>
+    <tbody id="doc-margin-body">
+      <tr>
+        <td name="no" style="text-align: center">{{no}}</td>
+        <td name="descr">{{marginrange_start}}% - {{marginrange_end}}%</td>
+        <td name="value" style="text-align: center">{{margin_percent}}%</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div style="margin: 3mm 5mm 1mm 5mm; font-weight: bold; font-size: 10pt"></div>
+  <table id="doc-brand" class="tableitem" cellpadding="0" cellspacing="0">
+    <tbody id="doc-brand-body">
+      <tr id="doc-brand-no">
+        <th class="rowheader">No</th>
+        <td class="brand-no-val" style="text-align: center">{{no}}</td>
+      </tr>
+      <tr id="doc-brand-name">
+        <th class="rowheader">Brand</th>
+        <td class="brand-name-val" style="text-align: center">{{brand_name}}</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div style="margin: 3mm 5mm 1mm 5mm; font-weight: bold; font-size: 10pt">
+    <!-- SECTION Document -->
+  </div>
+  <table id="doc-detil" class="tableitem" cellpadding="0" cellspacing="0">
+    <thead id="doc-detil-header">
+      <tr>
+        <th name="no" class="rowheader" style="width: 1cm; text-align: center">
+          No
+        </th>
+        <th name="descr" class="rowheader" style="text-align: left">Dokumen</th>
+        <th name="value" class="rowheader" style="width: 4cm; text-align: center">
+          Format
+        </th>
+      </tr>
+    </thead>
+    <tbody id="doc-doc-body">
+      <tr>
+        <td name="no" style="text-align: center">{{no}}</td>
+        <td name="descr">
+          {{agreementdoc_desc}}</td>
+        <td name="value" style="text-align: center">{{agreementdoc_type}}</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div id="doc-sign" style="
+      display: flex;
+      justify-content: space-between;
+      margin-top: 10mm;
+      padding: 0 5mm;
+    ">
+    <div class="signbox">
+      <div class="signbox-caption">Pihak Pertama</div>
+      <!-- <div class="signbox-title">TITLE</div> -->
+      <div class="signbox-sign"></div>
+      <div class="signbox-name">Nama, TTD</div>
+    </div>
+    <div class="signbox">
+      <div class="signbox-caption">Pihak Kedua</div>
+      <!-- <div class="signbox-title">TITLE</div> -->
+      <div class="signbox-sign"></div>
+      <div class="signbox-name">Nama, TTD</div>
+    </div>
+  </div>
+</div>

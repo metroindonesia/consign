@@ -1,0 +1,9 @@
+@import url('./agreement-print.css');
+@media screen and (min-width: 501px) {
+
+    div[name="panel-record-basic"] {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+    }
+}
