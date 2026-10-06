@@ -25,6 +25,12 @@ export function createRouter() {
 async function containerPage(req, res) {
 	try {
 
+		const rootPath = context.getRootDirectory()
+		const cssApplicationPath = path.join(rootPath, 'public', 'local', 'application.css');
+		const cssApplicationExists = await helper.isFileExists(cssApplicationPath);
+		const iconMenuUrl = req.app.locals.appConfig.iconMenuUrl
+		const themeCssUrl = req.app.locals.appConfig.themeCssUrl
+
 		// cek login terlebih dahulu
 		try {
 			Api.cekLogin(req)
@@ -38,13 +44,13 @@ async function containerPage(req, res) {
 		}
 
 
-		const iconMenuUrl = req.app.locals.appConfig.iconMenuUrl
-		const rootPath = context.getRootDirectory()
 		const variables = {
 			...helper.createDefaultEjsVariable(req),
 			...{
 				rootPath,
-				iconMenuUrl
+				iconMenuUrl,
+				themeCssUrl,
+				cssApplicationExists,
 			}
 		}
 
@@ -58,9 +64,13 @@ async function containerPage(req, res) {
 
 
 async function loginPage(req, res) {
-	const rootPath = context.getRootDirectory()
-
 	try {
+
+		const rootPath = context.getRootDirectory()
+		const cssApplicationPath = path.join(rootPath, 'public', 'local', 'application.css');
+		const cssApplicationExists = await helper.isFileExists(cssApplicationPath);
+		const iconMenuUrl = req.app.locals.appConfig.iconMenuUrl
+		const themeCssUrl = req.app.locals.appConfig.themeCssUrl
 
 
 		const loginPagePath = path.join(rootPath, 'public', 'modules', 'login', 'login.html')
@@ -68,7 +78,10 @@ async function loginPage(req, res) {
 			...helper.createDefaultEjsVariable(req),
 			...{
 				rootPath,
-				loginPagePath
+				loginPagePath,
+				iconMenuUrl,
+				themeCssUrl,
+				cssApplicationExists,
 			}
 		}
 

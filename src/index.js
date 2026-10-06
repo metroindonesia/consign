@@ -6,6 +6,8 @@ import { createWebApplication, createDefaultAppConfig } from '@agung_dhewe/webap
 import { getApplicationSetting, requireSetting, authorizeRequest } from '@agung_dhewe/webapps/src/startup.js'
 import { createRouter } from './router.js'
 import db from '@agung_dhewe/webapps/src/db.js'
+
+
 // import bucket from '@agung_dhewe/webapps/src/bucket.js'
 
 
@@ -16,6 +18,8 @@ const __dirname = path.dirname(__filename);
 const webapp = createWebApplication()
 const appName = process.env.APPNAME
 const appTitle = process.env.APPTITLE
+const moduleWhiteList = ['profile']
+
 
 
 main()
@@ -42,7 +46,6 @@ async function main() {
 	const fgta5jsVersion = process.env.FGTA5JS_VERSION || ''
 	const appDebugMode = process.env.DEBUG_MODE_APP === 'true'
 
-	const iconMenuUrl = process.env.ICON_MENU_URL || ''
 
 
 	const router = createRouter()
@@ -50,6 +53,10 @@ async function main() {
 	// ambil setting system
 	const applicationSetting = await getApplicationSetting(db, 'core."setting"')
 	await settingInit(db, applicationSetting)
+
+	const iconMenuUrl = applicationSetting.ICON_MENU_URL
+	const themeCssUrl = applicationSetting.THEME_CSS_URL
+
 
 	// variabel local konfigurasi yang bisa diakses dari api/router
 	const appConfig = {
@@ -74,6 +81,7 @@ async function main() {
 			sessionHttpOnly: sessionHttpOnly.toLowerCase() === 'false' ? false : true,
 
 			iconMenuUrl,
+			themeCssUrl,
 
 			defaultCurr: { id: 1, name: 'IDR' },
 			localCurr: { id: 1, name: 'IDR' }
@@ -92,11 +100,15 @@ async function main() {
 		appConfig,
 		router,
 		allowedOrigins: [
-			// /^https:\/\/[a-z0-9.-]+\.transfashion\.id(:\d+)?$/,
 			new RegExp(`^https?://[a-z0-9.-]*${escapedDomain}(:\\d+)?$`),
 			new RegExp(`^http://localhost:${port}(:\\d+)?$`)
 		],
 		fnParseModuleRequest: async (req) => {
+			const moduleName = req.params.modulename
+			if (moduleWhiteList.includes(moduleName)) {
+				return true
+			}
+
 			await authorizeRequest(db, req)
 		}
 	})
@@ -108,11 +120,16 @@ async function main() {
 async function settingInit(db, setting) {
 	const results = await Promise.allSettled([
 		requireSetting(db, setting, 'COMPANY_CODE', 'kode perusahaan, 2 digit numerik, untuk keperluan konsolidasi bisa sistem dipakai di beberapa anak perusahaan'),
-		requireSetting(db, setting, 'COMPANY_ADDR1', ''),
 		requireSetting(db, setting, 'COMPANY_NAME', ''),
+		requireSetting(db, setting, 'COMPANY_ADDR1', ''),
 		requireSetting(db, setting, 'COMPANY_ADDR2', ''),
 		requireSetting(db, setting, 'COMPANY_ADDR3', ''),
 		requireSetting(db, setting, 'COMPANY_PHONE', ''),
+		requireSetting(db, setting, 'COMPANY_PRINTLOGO', 'path url untuk logo yang dicetak di report, misalnya /public/images/logo.svg'),
+		requireSetting(db, setting, 'ICON_MENU_URL', 'icon menu kanan atas'),
+		requireSetting(db, setting, 'THEME_CSS_URL', 'CSS theme application'),
+
+
 	])
 
 	const errors = results

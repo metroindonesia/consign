@@ -40,6 +40,7 @@ const obj_adendumtype_id = frm.Inputs['adendumtypeHeaderEdit-obj_adendumtype_id'
 const obj_adendumtype_name = frm.Inputs['adendumtypeHeaderEdit-obj_adendumtype_name']
 const obj_adendumtype_desc = frm.Inputs['adendumtypeHeaderEdit-obj_adendumtype_desc']
 const obj_adendum_isdisabled = frm.Inputs['adendumtypeHeaderEdit-obj_adendum_isdisabled']	
+const rec_timestamp = document.getElementById('fRecord-section-timestamp')
 const rec_createby = document.getElementById('fRecord-section-createby')
 const rec_createdate = document.getElementById('fRecord-section-createdate')
 const rec_modifyby = document.getElementById('fRecord-section-modifyby')
@@ -711,10 +712,11 @@ async function btn_recordstatus_click(self, evt) {
 			const data = await openData(self, id)
 
 			rec_id.innerHTML = id
+			rec_timestamp.innerHTML = pageHelper.formatLocalDateTime(data._timestamp)
 			rec_createby.innerHTML = data._createby
-			rec_createdate.innerHTML = data._createdate
-			rec_modifyby.innerHTML = data._modifyby
-			rec_modifydate.innerHTML = data._modifydate
+			rec_createdate.innerHTML = pageHelper.formatLocalDateTime(data._createdate)
+			rec_modifyby.innerHTML = data._modifyby || '-'
+			rec_modifydate.innerHTML = pageHelper.formatLocalDateTime(data._modifydate)
 
 			const fn_addrecordinfo_name = 'adendumtypeHeaderEdit_addRecordInfo'
 			const fn_addrecordinfo = Extender[fn_addrecordinfo_name]

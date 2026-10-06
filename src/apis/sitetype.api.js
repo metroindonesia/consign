@@ -9,13 +9,15 @@ import db from '@agung_dhewe/webapps/src/db.js'
 import Api from '@agung_dhewe/webapps/src/api.js'
 import sqlUtil from '@agung_dhewe/pgsqlc'
 import context from '@agung_dhewe/webapps/src/context.js'  
+import { getProgramSetting } from '@agung_dhewe/webapps/src/helper.js'
 import logger from '@agung_dhewe/webapps/src/logger.js'
 
 import * as Extender from './extenders/sitetype.apiext.js'
 
 const moduleName = 'sitetype'
 const headerSectionName = 'header'
-const headerTableName = 'public.sitetype' 	
+const headerTableName = 'public.sitetype' 
+const headerPrimaryKey = 'sitetype_id' 	
 
 // api: account
 export default class extends Api {
@@ -62,6 +64,9 @@ async function sitetype_init(self, body) {
 			}
 		}
 
+		const programName = req.params.modulename;
+		const variance = req.query.variance;
+		const programSetting = await getProgramSetting(db, programName, variance)
 		const initialData = {
 			userId: req.session.user.userId,
 			userName: req.session.user.userName,
@@ -71,7 +76,9 @@ async function sitetype_init(self, body) {
 			notifierSocket: req.app.locals.appConfig.notifierSocket,
 			appName: req.app.locals.appConfig.appName,
 			appsUrls: appsUrls,
-			setting: {}
+			setting: {
+				program: programSetting
+			}
 		}
 		
 		if (typeof Extender.sitetype_init === 'function') {
@@ -176,7 +183,7 @@ async function sitetype_headerList(self, body) {
 			i++
 			if (i>max_rows) { break }
 
-			
+			 
 			// pasang extender di sini
 			if (typeof Extender.headerListRow === 'function') {
 				// export async function headerListRow(self, row, args) {}
@@ -225,16 +232,15 @@ async function sitetype_headerOpen(self, body) {
 			throw new Error(`[${tablename}] data dengan id '${id}' tidak ditemukan`) 
 		}	
 
-		
-
+		 
 		// lookup data createby
-		{
+		if (data._createby !== undefined) {
 			const { user_fullname } = await sqlUtil.lookupdb(db, 'core.user', 'user_id', data._createby)
 			data._createby = user_fullname ?? ''
 		}
 
 		// lookup data modifyby
-		{
+		if (data._modifyby !== undefined) {
 			const { user_fullname } = await sqlUtil.lookupdb(db, 'core.user', 'user_id', data._modifyby)
 			data._modifyby = user_fullname ?? ''
 		}
@@ -265,9 +271,11 @@ async function sitetype_headerCreate(self, body) {
 		// parse uploaded data
 		const files = Api.parseUploadData(data, req.files)
 
+		const data_timestamp = (new Date()).toISOString()
 
 		data._createby = user_id
-		data._createdate = (new Date()).toISOString()
+		data._createdate = data_timestamp
+		data._timestamp = data_timestamp
 
 		const result = await db.tx(async tx=>{
 			sqlUtil.connect(tx)
@@ -318,9 +326,12 @@ async function sitetype_headerUpdate(self, body) {
 		// parse uploaded data
 		const files = Api.parseUploadData(data, req.files)
 
+		const data_timestamp = (new Date()).toISOString()
 
 		data._modifyby = user_id
-		data._modifydate = (new Date()).toISOString()
+		data._modifydate = data_timestamp
+		data._timestamp = data_timestamp
+
 
 		const result = await db.tx(async tx=>{
 			sqlUtil.connect(tx)

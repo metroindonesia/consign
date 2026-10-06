@@ -9,6 +9,7 @@ import db from '@agung_dhewe/webapps/src/db.js'
 import Api from '@agung_dhewe/webapps/src/api.js'
 import sqlUtil from '@agung_dhewe/pgsqlc'
 import context from '@agung_dhewe/webapps/src/context.js'  
+import { getProgramSetting } from '@agung_dhewe/webapps/src/helper.js'
 import logger from '@agung_dhewe/webapps/src/logger.js'
 import { createSequencerLine } from '@agung_dhewe/webapps/src/sequencerline.js' 
 
@@ -17,6 +18,7 @@ import * as Extender from './extenders/user.apiext.js'
 const moduleName = 'user'
 const headerSectionName = 'header'
 const headerTableName = 'core.user' 
+const headerPrimaryKey = 'user_id' 
 const loginTableName = 'core.userlogin'  
 const propTableName = 'core.userprop'  
 const groupTableName = 'core.usergroup'  
@@ -108,6 +110,9 @@ async function user_init(self, body) {
 			}
 		}
 
+		const programName = req.params.modulename;
+		const variance = req.query.variance;
+		const programSetting = await getProgramSetting(db, programName, variance)
 		const initialData = {
 			userId: req.session.user.userId,
 			userName: req.session.user.userName,
@@ -117,7 +122,9 @@ async function user_init(self, body) {
 			notifierSocket: req.app.locals.appConfig.notifierSocket,
 			appName: req.app.locals.appConfig.appName,
 			appsUrls: appsUrls,
-			setting: {}
+			setting: {
+				program: programSetting
+			}
 		}
 		
 		if (typeof Extender.user_init === 'function') {
@@ -222,7 +229,7 @@ async function user_headerList(self, body) {
 			i++
 			if (i>max_rows) { break }
 
-			
+			 
 			// pasang extender di sini
 			if (typeof Extender.headerListRow === 'function') {
 				// export async function headerListRow(self, row, args) {}
@@ -271,16 +278,15 @@ async function user_headerOpen(self, body) {
 			throw new Error(`[${tablename}] data dengan id '${id}' tidak ditemukan`) 
 		}	
 
-		
-
+		 
 		// lookup data createby
-		{
+		if (data._createby !== undefined) {
 			const { user_fullname } = await sqlUtil.lookupdb(db, 'core.user', 'user_id', data._createby)
 			data._createby = user_fullname ?? ''
 		}
 
 		// lookup data modifyby
-		{
+		if (data._modifyby !== undefined) {
 			const { user_fullname } = await sqlUtil.lookupdb(db, 'core.user', 'user_id', data._modifyby)
 			data._modifyby = user_fullname ?? ''
 		}
@@ -311,9 +317,11 @@ async function user_headerCreate(self, body) {
 		// parse uploaded data
 		const files = Api.parseUploadData(data, req.files)
 
+		const data_timestamp = (new Date()).toISOString()
 
 		data._createby = user_id
-		data._createdate = (new Date()).toISOString()
+		data._createdate = data_timestamp
+		data._timestamp = data_timestamp
 
 		const result = await db.tx(async tx=>{
 			sqlUtil.connect(tx)
@@ -333,7 +341,7 @@ async function user_headerCreate(self, body) {
 			}
 
 			// generate short id sesuai prefix (default: USER) reset pertahun
-			const seqdata = await sequencer.yearlyshort(args.prefix)
+			const seqdata = await sequencer.yearlyshort(args.doc_id)
 			data.user_id = seqdata.id
 
 			// apabila ada keperluan pengelohan data sebelum disimpan, lakukan di extender headerCreating
@@ -380,9 +388,12 @@ async function user_headerUpdate(self, body) {
 		// parse uploaded data
 		const files = Api.parseUploadData(data, req.files)
 
+		const data_timestamp = (new Date()).toISOString()
 
 		data._modifyby = user_id
-		data._modifydate = (new Date()).toISOString()
+		data._modifydate = data_timestamp
+		data._timestamp = data_timestamp
+
 
 		const result = await db.tx(async tx=>{
 			sqlUtil.connect(tx)
@@ -679,8 +690,7 @@ async function user_loginList(self, body) {
 			i++
 			if (i>max_rows) { break }
 
-			
-
+			 
 			// pasang extender di sini
 			if (typeof Extender.detilListRow === 'function') {
 				// export async function detilListRow(self, row, args) {}
@@ -737,16 +747,15 @@ async function user_loginOpen(self, body) {
 		}	
 
 
-		
-
+		  
 		// lookup data createby
-		{
+		if (data._createby !== undefined) {
 			const { user_fullname } = await sqlUtil.lookupdb(db, 'core.user', 'user_id', data._createby)
 			data._createby = user_fullname ?? ''
 		}
 
 		// lookup data modifyby
-		{
+		if (data._modifyby !== undefined) {
 			const { user_fullname } = await sqlUtil.lookupdb(db, 'core.user', 'user_id', data._modifyby)
 			data._modifyby = user_fullname ?? ''
 		}	
@@ -777,9 +786,11 @@ async function user_loginCreate(self, body) {
 		// parse uploaded data
 		const files = Api.parseUploadData(data, req.files)
 
+		const data_timestamp = (new Date()).toISOString()
 
 		data._createby = user_id
-		data._createdate = (new Date()).toISOString()
+		data._createdate = data_timestamp
+		data._timestamp = data_timestamp
 
 		const result = await db.tx(async tx=>{
 			sqlUtil.connect(tx)
@@ -787,7 +798,7 @@ async function user_loginCreate(self, body) {
 
 			const args = { 
 				section: 'login', 
-				prefix: 'USER'	
+				doc_id: 'USER'	
 			}
 
 			const sequencer = createSequencerLine(tx, {})
@@ -801,7 +812,7 @@ async function user_loginCreate(self, body) {
 			}
 
 
-			const seqdata = await sequencer.increment(args.prefix)
+			const seqdata = await sequencer.increment(args.doc_id)
 			data.userlogin_id = seqdata.id
 
 			// apabila ada keperluan pengolahan data SEBELUM disimpan
@@ -813,6 +824,14 @@ async function user_loginCreate(self, body) {
 			const cmd = sqlUtil.createInsertCommand(tablename, data)
 			const ret = await cmd.execute(data)
 			
+
+			// update timestamp pada header
+			tx.none(`update ${headerTableName} set _timestamp=$[_timestamp] where ${headerPrimaryKey}=$[pk]`, {
+				_timestamp: data_timestamp,
+				pk: data.user_id
+			})
+
+
 			const logMetadata = {}
 
 			// apabila ada keperluan pengelohan data setelah disimpan, lakukan di extender headerCreated
@@ -845,12 +864,18 @@ async function user_loginUpdate(self, body) {
 		// parse uploaded data
 		const files = Api.parseUploadData(data, req.files)
 
+		const data_timestamp = (new Date()).toISOString()
 
 		data._modifyby = user_id
-		data._modifydate = (new Date()).toISOString()
+		data._modifydate = data_timestamp
+		data._timestamp = data_timestamp
 
 		const result = await db.tx(async tx=>{
 			sqlUtil.connect(tx)
+
+			const dataToUpdate = {userlogin_id: data.userlogin_id}
+			const sql = `select * from ${loginTableName} where userlogin_id=\${userlogin_id}`
+			const rowlogin = await tx.oneOrNone(sql, dataToUpdate)
 
 
 			// apabila ada keperluan pengolahan data SEBELUM disimpan
@@ -862,6 +887,13 @@ async function user_loginUpdate(self, body) {
 			const cmd =  sqlUtil.createUpdateCommand(tablename, data, ['userlogin_id'])
 			const ret = await cmd.execute(data)
 			
+
+			// update timestamp pada header
+			tx.none(`update ${headerTableName} set _timestamp=$[_timestamp] where ${headerPrimaryKey}=$[pk]`, {
+				_timestamp: data_timestamp,
+				pk: rowlogin.user_id
+			})
+
 			const logMetadata = {}
 
 			// apabila ada keperluan pengelohan data setelah disimpan, lakukan di extender headerCreated
@@ -891,6 +923,8 @@ async function user_loginDelete(self, body) {
 
 	try {
 
+		const data_timestamp = (new Date()).toISOString()
+
 		const deletedRow = await db.tx(async tx=>{
 			sqlUtil.connect(tx)
 
@@ -909,6 +943,13 @@ async function user_loginDelete(self, body) {
 			const param = {userlogin_id: rowlogin.userlogin_id}
 			const cmd = sqlUtil.createDeleteCommand(loginTableName, ['userlogin_id'])
 			const deletedRow = await cmd.execute(param)
+
+
+			// update timestamp pada header
+			tx.none(`update ${headerTableName} set _timestamp=$[_timestamp] where ${headerPrimaryKey}=$[pk]`, {
+				_timestamp: data_timestamp,
+				pk: rowlogin.user_id
+			})
 
 			// apabila ada keperluan pengelohan data setelah dihapus, lakukan di extender
 			if (typeof Extender.loginDeleted === 'function') {
@@ -939,6 +980,9 @@ async function user_loginDeleteRows(self, body) {
 
 	try {
 
+
+		const data_timestamp = (new Date()).toISOString()
+
 		let user_id
 		const result = await db.tx(async tx=>{
 			sqlUtil.connect(tx)
@@ -962,6 +1006,12 @@ async function user_loginDeleteRows(self, body) {
 				const cmd = sqlUtil.createDeleteCommand(loginTableName, ['userlogin_id'])
 				const deletedRow = await cmd.execute(param)
 
+				// update timestamp pada header
+				tx.none(`update ${headerTableName} set _timestamp=$[_timestamp] where ${headerPrimaryKey}=$[pk]`, {
+					_timestamp: data_timestamp,
+					pk: rowlogin.user_id
+				})
+				
 				// apabila ada keperluan pengelohan data setelah dihapus, lakukan di extender
 				if (typeof Extender.loginDeleted === 'function') {
 					// export async function loginDeleted(self, tx, deletedRow, logMetadata) {}
@@ -1047,8 +1097,7 @@ async function user_propList(self, body) {
 			i++
 			if (i>max_rows) { break }
 
-			
-
+			 
 			// pasang extender di sini
 			if (typeof Extender.detilListRow === 'function') {
 				// export async function detilListRow(self, row, args) {}
@@ -1105,16 +1154,15 @@ async function user_propOpen(self, body) {
 		}	
 
 
-		
-
+		  
 		// lookup data createby
-		{
+		if (data._createby !== undefined) {
 			const { user_fullname } = await sqlUtil.lookupdb(db, 'core.user', 'user_id', data._createby)
 			data._createby = user_fullname ?? ''
 		}
 
 		// lookup data modifyby
-		{
+		if (data._modifyby !== undefined) {
 			const { user_fullname } = await sqlUtil.lookupdb(db, 'core.user', 'user_id', data._modifyby)
 			data._modifyby = user_fullname ?? ''
 		}	
@@ -1145,9 +1193,11 @@ async function user_propCreate(self, body) {
 		// parse uploaded data
 		const files = Api.parseUploadData(data, req.files)
 
+		const data_timestamp = (new Date()).toISOString()
 
 		data._createby = user_id
-		data._createdate = (new Date()).toISOString()
+		data._createdate = data_timestamp
+		data._timestamp = data_timestamp
 
 		const result = await db.tx(async tx=>{
 			sqlUtil.connect(tx)
@@ -1155,7 +1205,7 @@ async function user_propCreate(self, body) {
 
 			const args = { 
 				section: 'prop', 
-				prefix: 'USER'	
+				doc_id: 'USER'	
 			}
 
 			const sequencer = createSequencerLine(tx, {})
@@ -1169,7 +1219,7 @@ async function user_propCreate(self, body) {
 			}
 
 
-			const seqdata = await sequencer.increment(args.prefix)
+			const seqdata = await sequencer.increment(args.doc_id)
 			data.userprop_id = seqdata.id
 
 			// apabila ada keperluan pengolahan data SEBELUM disimpan
@@ -1181,6 +1231,14 @@ async function user_propCreate(self, body) {
 			const cmd = sqlUtil.createInsertCommand(tablename, data)
 			const ret = await cmd.execute(data)
 			
+
+			// update timestamp pada header
+			tx.none(`update ${headerTableName} set _timestamp=$[_timestamp] where ${headerPrimaryKey}=$[pk]`, {
+				_timestamp: data_timestamp,
+				pk: data.user_id
+			})
+
+
 			const logMetadata = {}
 
 			// apabila ada keperluan pengelohan data setelah disimpan, lakukan di extender headerCreated
@@ -1213,12 +1271,18 @@ async function user_propUpdate(self, body) {
 		// parse uploaded data
 		const files = Api.parseUploadData(data, req.files)
 
+		const data_timestamp = (new Date()).toISOString()
 
 		data._modifyby = user_id
-		data._modifydate = (new Date()).toISOString()
+		data._modifydate = data_timestamp
+		data._timestamp = data_timestamp
 
 		const result = await db.tx(async tx=>{
 			sqlUtil.connect(tx)
+
+			const dataToUpdate = {userprop_id: data.userprop_id}
+			const sql = `select * from ${propTableName} where userprop_id=\${userprop_id}`
+			const rowprop = await tx.oneOrNone(sql, dataToUpdate)
 
 
 			// apabila ada keperluan pengolahan data SEBELUM disimpan
@@ -1230,6 +1294,13 @@ async function user_propUpdate(self, body) {
 			const cmd =  sqlUtil.createUpdateCommand(tablename, data, ['userprop_id'])
 			const ret = await cmd.execute(data)
 			
+
+			// update timestamp pada header
+			tx.none(`update ${headerTableName} set _timestamp=$[_timestamp] where ${headerPrimaryKey}=$[pk]`, {
+				_timestamp: data_timestamp,
+				pk: rowprop.user_id
+			})
+
 			const logMetadata = {}
 
 			// apabila ada keperluan pengelohan data setelah disimpan, lakukan di extender headerCreated
@@ -1259,6 +1330,8 @@ async function user_propDelete(self, body) {
 
 	try {
 
+		const data_timestamp = (new Date()).toISOString()
+
 		const deletedRow = await db.tx(async tx=>{
 			sqlUtil.connect(tx)
 
@@ -1277,6 +1350,13 @@ async function user_propDelete(self, body) {
 			const param = {userprop_id: rowprop.userprop_id}
 			const cmd = sqlUtil.createDeleteCommand(propTableName, ['userprop_id'])
 			const deletedRow = await cmd.execute(param)
+
+
+			// update timestamp pada header
+			tx.none(`update ${headerTableName} set _timestamp=$[_timestamp] where ${headerPrimaryKey}=$[pk]`, {
+				_timestamp: data_timestamp,
+				pk: rowprop.user_id
+			})
 
 			// apabila ada keperluan pengelohan data setelah dihapus, lakukan di extender
 			if (typeof Extender.propDeleted === 'function') {
@@ -1307,6 +1387,9 @@ async function user_propDeleteRows(self, body) {
 
 	try {
 
+
+		const data_timestamp = (new Date()).toISOString()
+
 		let user_id
 		const result = await db.tx(async tx=>{
 			sqlUtil.connect(tx)
@@ -1330,6 +1413,12 @@ async function user_propDeleteRows(self, body) {
 				const cmd = sqlUtil.createDeleteCommand(propTableName, ['userprop_id'])
 				const deletedRow = await cmd.execute(param)
 
+				// update timestamp pada header
+				tx.none(`update ${headerTableName} set _timestamp=$[_timestamp] where ${headerPrimaryKey}=$[pk]`, {
+					_timestamp: data_timestamp,
+					pk: rowprop.user_id
+				})
+				
 				// apabila ada keperluan pengelohan data setelah dihapus, lakukan di extender
 				if (typeof Extender.propDeleted === 'function') {
 					// export async function propDeleted(self, tx, deletedRow, logMetadata) {}
@@ -1416,12 +1505,11 @@ async function user_groupList(self, body) {
 			if (i>max_rows) { break }
 
 			// lookup: group_name dari field group_name pada table core.group dimana (core.group.group_id = core.user.group_id)
-			{
+			if (row.group_id !== undefined) {
 				const { group_name } = await sqlUtil.lookupdb(db, 'core.group', 'group_id', row.group_id)
-				row.group_name = group_name
+				row.group_name = group_name ?? null
 			}
-			
-
+			 
 			// pasang extender di sini
 			if (typeof Extender.detilListRow === 'function') {
 				// export async function detilListRow(self, row, args) {}
@@ -1479,20 +1567,19 @@ async function user_groupOpen(self, body) {
 
 
 		// lookup: group_name dari field group_name pada table core.group dimana (core.group.group_id = core.user.group_id)
-		{
+		if (data.group_id !== undefined) {
 			const { group_name } = await sqlUtil.lookupdb(db, 'core.group', 'group_id', data.group_id)
-			data.group_name = group_name
+			data.group_name = group_name ?? null
 		}
-		
-
+		  
 		// lookup data createby
-		{
+		if (data._createby !== undefined) {
 			const { user_fullname } = await sqlUtil.lookupdb(db, 'core.user', 'user_id', data._createby)
 			data._createby = user_fullname ?? ''
 		}
 
 		// lookup data modifyby
-		{
+		if (data._modifyby !== undefined) {
 			const { user_fullname } = await sqlUtil.lookupdb(db, 'core.user', 'user_id', data._modifyby)
 			data._modifyby = user_fullname ?? ''
 		}	
@@ -1523,9 +1610,11 @@ async function user_groupCreate(self, body) {
 		// parse uploaded data
 		const files = Api.parseUploadData(data, req.files)
 
+		const data_timestamp = (new Date()).toISOString()
 
 		data._createby = user_id
-		data._createdate = (new Date()).toISOString()
+		data._createdate = data_timestamp
+		data._timestamp = data_timestamp
 
 		const result = await db.tx(async tx=>{
 			sqlUtil.connect(tx)
@@ -1533,7 +1622,7 @@ async function user_groupCreate(self, body) {
 
 			const args = { 
 				section: 'group', 
-				prefix: 'USER'	
+				doc_id: 'USER'	
 			}
 
 			const sequencer = createSequencerLine(tx, {})
@@ -1547,7 +1636,7 @@ async function user_groupCreate(self, body) {
 			}
 
 
-			const seqdata = await sequencer.increment(args.prefix)
+			const seqdata = await sequencer.increment(args.doc_id)
 			data.usergroup_id = seqdata.id
 
 			// apabila ada keperluan pengolahan data SEBELUM disimpan
@@ -1559,6 +1648,14 @@ async function user_groupCreate(self, body) {
 			const cmd = sqlUtil.createInsertCommand(tablename, data)
 			const ret = await cmd.execute(data)
 			
+
+			// update timestamp pada header
+			tx.none(`update ${headerTableName} set _timestamp=$[_timestamp] where ${headerPrimaryKey}=$[pk]`, {
+				_timestamp: data_timestamp,
+				pk: data.user_id
+			})
+
+
 			const logMetadata = {}
 
 			// apabila ada keperluan pengelohan data setelah disimpan, lakukan di extender headerCreated
@@ -1591,12 +1688,18 @@ async function user_groupUpdate(self, body) {
 		// parse uploaded data
 		const files = Api.parseUploadData(data, req.files)
 
+		const data_timestamp = (new Date()).toISOString()
 
 		data._modifyby = user_id
-		data._modifydate = (new Date()).toISOString()
+		data._modifydate = data_timestamp
+		data._timestamp = data_timestamp
 
 		const result = await db.tx(async tx=>{
 			sqlUtil.connect(tx)
+
+			const dataToUpdate = {usergroup_id: data.usergroup_id}
+			const sql = `select * from ${groupTableName} where usergroup_id=\${usergroup_id}`
+			const rowgroup = await tx.oneOrNone(sql, dataToUpdate)
 
 
 			// apabila ada keperluan pengolahan data SEBELUM disimpan
@@ -1608,6 +1711,13 @@ async function user_groupUpdate(self, body) {
 			const cmd =  sqlUtil.createUpdateCommand(tablename, data, ['usergroup_id'])
 			const ret = await cmd.execute(data)
 			
+
+			// update timestamp pada header
+			tx.none(`update ${headerTableName} set _timestamp=$[_timestamp] where ${headerPrimaryKey}=$[pk]`, {
+				_timestamp: data_timestamp,
+				pk: rowgroup.user_id
+			})
+
 			const logMetadata = {}
 
 			// apabila ada keperluan pengelohan data setelah disimpan, lakukan di extender headerCreated
@@ -1637,6 +1747,8 @@ async function user_groupDelete(self, body) {
 
 	try {
 
+		const data_timestamp = (new Date()).toISOString()
+
 		const deletedRow = await db.tx(async tx=>{
 			sqlUtil.connect(tx)
 
@@ -1655,6 +1767,13 @@ async function user_groupDelete(self, body) {
 			const param = {usergroup_id: rowgroup.usergroup_id}
 			const cmd = sqlUtil.createDeleteCommand(groupTableName, ['usergroup_id'])
 			const deletedRow = await cmd.execute(param)
+
+
+			// update timestamp pada header
+			tx.none(`update ${headerTableName} set _timestamp=$[_timestamp] where ${headerPrimaryKey}=$[pk]`, {
+				_timestamp: data_timestamp,
+				pk: rowgroup.user_id
+			})
 
 			// apabila ada keperluan pengelohan data setelah dihapus, lakukan di extender
 			if (typeof Extender.groupDeleted === 'function') {
@@ -1685,6 +1804,9 @@ async function user_groupDeleteRows(self, body) {
 
 	try {
 
+
+		const data_timestamp = (new Date()).toISOString()
+
 		let user_id
 		const result = await db.tx(async tx=>{
 			sqlUtil.connect(tx)
@@ -1708,6 +1830,12 @@ async function user_groupDeleteRows(self, body) {
 				const cmd = sqlUtil.createDeleteCommand(groupTableName, ['usergroup_id'])
 				const deletedRow = await cmd.execute(param)
 
+				// update timestamp pada header
+				tx.none(`update ${headerTableName} set _timestamp=$[_timestamp] where ${headerPrimaryKey}=$[pk]`, {
+					_timestamp: data_timestamp,
+					pk: rowgroup.user_id
+				})
+				
 				// apabila ada keperluan pengelohan data setelah dihapus, lakukan di extender
 				if (typeof Extender.groupDeleted === 'function') {
 					// export async function groupDeleted(self, tx, deletedRow, logMetadata) {}
@@ -1794,12 +1922,11 @@ async function user_favouriteList(self, body) {
 			if (i>max_rows) { break }
 
 			// lookup: program_name dari field program_name pada table core.program dimana (core.program.program_id = core.user.program_id)
-			{
+			if (row.program_id !== undefined) {
 				const { program_name } = await sqlUtil.lookupdb(db, 'core.program', 'program_id', row.program_id)
-				row.program_name = program_name
+				row.program_name = program_name ?? null
 			}
-			
-
+			 
 			// pasang extender di sini
 			if (typeof Extender.detilListRow === 'function') {
 				// export async function detilListRow(self, row, args) {}
@@ -1857,20 +1984,19 @@ async function user_favouriteOpen(self, body) {
 
 
 		// lookup: program_name dari field program_name pada table core.program dimana (core.program.program_id = core.user.program_id)
-		{
+		if (data.program_id !== undefined) {
 			const { program_name } = await sqlUtil.lookupdb(db, 'core.program', 'program_id', data.program_id)
-			data.program_name = program_name
+			data.program_name = program_name ?? null
 		}
-		
-
+		  
 		// lookup data createby
-		{
+		if (data._createby !== undefined) {
 			const { user_fullname } = await sqlUtil.lookupdb(db, 'core.user', 'user_id', data._createby)
 			data._createby = user_fullname ?? ''
 		}
 
 		// lookup data modifyby
-		{
+		if (data._modifyby !== undefined) {
 			const { user_fullname } = await sqlUtil.lookupdb(db, 'core.user', 'user_id', data._modifyby)
 			data._modifyby = user_fullname ?? ''
 		}	
@@ -1901,9 +2027,11 @@ async function user_favouriteCreate(self, body) {
 		// parse uploaded data
 		const files = Api.parseUploadData(data, req.files)
 
+		const data_timestamp = (new Date()).toISOString()
 
 		data._createby = user_id
-		data._createdate = (new Date()).toISOString()
+		data._createdate = data_timestamp
+		data._timestamp = data_timestamp
 
 		const result = await db.tx(async tx=>{
 			sqlUtil.connect(tx)
@@ -1911,7 +2039,7 @@ async function user_favouriteCreate(self, body) {
 
 			const args = { 
 				section: 'favourite', 
-				prefix: 'USER'	
+				doc_id: 'USER'	
 			}
 
 			const sequencer = createSequencerLine(tx, {})
@@ -1925,7 +2053,7 @@ async function user_favouriteCreate(self, body) {
 			}
 
 
-			const seqdata = await sequencer.increment(args.prefix)
+			const seqdata = await sequencer.increment(args.doc_id)
 			data.userfavouriteprogram_id = seqdata.id
 
 			// apabila ada keperluan pengolahan data SEBELUM disimpan
@@ -1937,6 +2065,14 @@ async function user_favouriteCreate(self, body) {
 			const cmd = sqlUtil.createInsertCommand(tablename, data)
 			const ret = await cmd.execute(data)
 			
+
+			// update timestamp pada header
+			tx.none(`update ${headerTableName} set _timestamp=$[_timestamp] where ${headerPrimaryKey}=$[pk]`, {
+				_timestamp: data_timestamp,
+				pk: data.user_id
+			})
+
+
 			const logMetadata = {}
 
 			// apabila ada keperluan pengelohan data setelah disimpan, lakukan di extender headerCreated
@@ -1969,12 +2105,18 @@ async function user_favouriteUpdate(self, body) {
 		// parse uploaded data
 		const files = Api.parseUploadData(data, req.files)
 
+		const data_timestamp = (new Date()).toISOString()
 
 		data._modifyby = user_id
-		data._modifydate = (new Date()).toISOString()
+		data._modifydate = data_timestamp
+		data._timestamp = data_timestamp
 
 		const result = await db.tx(async tx=>{
 			sqlUtil.connect(tx)
+
+			const dataToUpdate = {userfavouriteprogram_id: data.userfavouriteprogram_id}
+			const sql = `select * from ${favouriteTableName} where userfavouriteprogram_id=\${userfavouriteprogram_id}`
+			const rowfavourite = await tx.oneOrNone(sql, dataToUpdate)
 
 
 			// apabila ada keperluan pengolahan data SEBELUM disimpan
@@ -1986,6 +2128,13 @@ async function user_favouriteUpdate(self, body) {
 			const cmd =  sqlUtil.createUpdateCommand(tablename, data, ['userfavouriteprogram_id'])
 			const ret = await cmd.execute(data)
 			
+
+			// update timestamp pada header
+			tx.none(`update ${headerTableName} set _timestamp=$[_timestamp] where ${headerPrimaryKey}=$[pk]`, {
+				_timestamp: data_timestamp,
+				pk: rowfavourite.user_id
+			})
+
 			const logMetadata = {}
 
 			// apabila ada keperluan pengelohan data setelah disimpan, lakukan di extender headerCreated
@@ -2015,6 +2164,8 @@ async function user_favouriteDelete(self, body) {
 
 	try {
 
+		const data_timestamp = (new Date()).toISOString()
+
 		const deletedRow = await db.tx(async tx=>{
 			sqlUtil.connect(tx)
 
@@ -2033,6 +2184,13 @@ async function user_favouriteDelete(self, body) {
 			const param = {userfavouriteprogram_id: rowfavourite.userfavouriteprogram_id}
 			const cmd = sqlUtil.createDeleteCommand(favouriteTableName, ['userfavouriteprogram_id'])
 			const deletedRow = await cmd.execute(param)
+
+
+			// update timestamp pada header
+			tx.none(`update ${headerTableName} set _timestamp=$[_timestamp] where ${headerPrimaryKey}=$[pk]`, {
+				_timestamp: data_timestamp,
+				pk: rowfavourite.user_id
+			})
 
 			// apabila ada keperluan pengelohan data setelah dihapus, lakukan di extender
 			if (typeof Extender.favouriteDeleted === 'function') {
@@ -2063,6 +2221,9 @@ async function user_favouriteDeleteRows(self, body) {
 
 	try {
 
+
+		const data_timestamp = (new Date()).toISOString()
+
 		let user_id
 		const result = await db.tx(async tx=>{
 			sqlUtil.connect(tx)
@@ -2086,6 +2247,12 @@ async function user_favouriteDeleteRows(self, body) {
 				const cmd = sqlUtil.createDeleteCommand(favouriteTableName, ['userfavouriteprogram_id'])
 				const deletedRow = await cmd.execute(param)
 
+				// update timestamp pada header
+				tx.none(`update ${headerTableName} set _timestamp=$[_timestamp] where ${headerPrimaryKey}=$[pk]`, {
+					_timestamp: data_timestamp,
+					pk: rowfavourite.user_id
+				})
+				
 				// apabila ada keperluan pengelohan data setelah dihapus, lakukan di extender
 				if (typeof Extender.favouriteDeleted === 'function') {
 					// export async function favouriteDeleted(self, tx, deletedRow, logMetadata) {}
@@ -2172,12 +2339,11 @@ async function user_roleList(self, body) {
 			if (i>max_rows) { break }
 
 			// lookup: role_name dari field role_name pada table core.role dimana (core.role.role_id = core.user.role_id)
-			{
+			if (row.role_id !== undefined) {
 				const { role_name } = await sqlUtil.lookupdb(db, 'core.role', 'role_id', row.role_id)
-				row.role_name = role_name
+				row.role_name = role_name ?? null
 			}
-			
-
+			 
 			// pasang extender di sini
 			if (typeof Extender.detilListRow === 'function') {
 				// export async function detilListRow(self, row, args) {}
@@ -2235,20 +2401,19 @@ async function user_roleOpen(self, body) {
 
 
 		// lookup: role_name dari field role_name pada table core.role dimana (core.role.role_id = core.user.role_id)
-		{
+		if (data.role_id !== undefined) {
 			const { role_name } = await sqlUtil.lookupdb(db, 'core.role', 'role_id', data.role_id)
-			data.role_name = role_name
+			data.role_name = role_name ?? null
 		}
-		
-
+		  
 		// lookup data createby
-		{
+		if (data._createby !== undefined) {
 			const { user_fullname } = await sqlUtil.lookupdb(db, 'core.user', 'user_id', data._createby)
 			data._createby = user_fullname ?? ''
 		}
 
 		// lookup data modifyby
-		{
+		if (data._modifyby !== undefined) {
 			const { user_fullname } = await sqlUtil.lookupdb(db, 'core.user', 'user_id', data._modifyby)
 			data._modifyby = user_fullname ?? ''
 		}	
@@ -2279,9 +2444,11 @@ async function user_roleCreate(self, body) {
 		// parse uploaded data
 		const files = Api.parseUploadData(data, req.files)
 
+		const data_timestamp = (new Date()).toISOString()
 
 		data._createby = user_id
-		data._createdate = (new Date()).toISOString()
+		data._createdate = data_timestamp
+		data._timestamp = data_timestamp
 
 		const result = await db.tx(async tx=>{
 			sqlUtil.connect(tx)
@@ -2289,7 +2456,7 @@ async function user_roleCreate(self, body) {
 
 			const args = { 
 				section: 'role', 
-				prefix: 'USER'	
+				doc_id: 'USER'	
 			}
 
 			const sequencer = createSequencerLine(tx, {})
@@ -2303,7 +2470,7 @@ async function user_roleCreate(self, body) {
 			}
 
 
-			const seqdata = await sequencer.increment(args.prefix)
+			const seqdata = await sequencer.increment(args.doc_id)
 			data.userrole_id = seqdata.id
 
 			// apabila ada keperluan pengolahan data SEBELUM disimpan
@@ -2315,6 +2482,14 @@ async function user_roleCreate(self, body) {
 			const cmd = sqlUtil.createInsertCommand(tablename, data)
 			const ret = await cmd.execute(data)
 			
+
+			// update timestamp pada header
+			tx.none(`update ${headerTableName} set _timestamp=$[_timestamp] where ${headerPrimaryKey}=$[pk]`, {
+				_timestamp: data_timestamp,
+				pk: data.user_id
+			})
+
+
 			const logMetadata = {}
 
 			// apabila ada keperluan pengelohan data setelah disimpan, lakukan di extender headerCreated
@@ -2347,12 +2522,18 @@ async function user_roleUpdate(self, body) {
 		// parse uploaded data
 		const files = Api.parseUploadData(data, req.files)
 
+		const data_timestamp = (new Date()).toISOString()
 
 		data._modifyby = user_id
-		data._modifydate = (new Date()).toISOString()
+		data._modifydate = data_timestamp
+		data._timestamp = data_timestamp
 
 		const result = await db.tx(async tx=>{
 			sqlUtil.connect(tx)
+
+			const dataToUpdate = {userrole_id: data.userrole_id}
+			const sql = `select * from ${roleTableName} where userrole_id=\${userrole_id}`
+			const rowrole = await tx.oneOrNone(sql, dataToUpdate)
 
 
 			// apabila ada keperluan pengolahan data SEBELUM disimpan
@@ -2364,6 +2545,13 @@ async function user_roleUpdate(self, body) {
 			const cmd =  sqlUtil.createUpdateCommand(tablename, data, ['userrole_id'])
 			const ret = await cmd.execute(data)
 			
+
+			// update timestamp pada header
+			tx.none(`update ${headerTableName} set _timestamp=$[_timestamp] where ${headerPrimaryKey}=$[pk]`, {
+				_timestamp: data_timestamp,
+				pk: rowrole.user_id
+			})
+
 			const logMetadata = {}
 
 			// apabila ada keperluan pengelohan data setelah disimpan, lakukan di extender headerCreated
@@ -2393,6 +2581,8 @@ async function user_roleDelete(self, body) {
 
 	try {
 
+		const data_timestamp = (new Date()).toISOString()
+
 		const deletedRow = await db.tx(async tx=>{
 			sqlUtil.connect(tx)
 
@@ -2411,6 +2601,13 @@ async function user_roleDelete(self, body) {
 			const param = {userrole_id: rowrole.userrole_id}
 			const cmd = sqlUtil.createDeleteCommand(roleTableName, ['userrole_id'])
 			const deletedRow = await cmd.execute(param)
+
+
+			// update timestamp pada header
+			tx.none(`update ${headerTableName} set _timestamp=$[_timestamp] where ${headerPrimaryKey}=$[pk]`, {
+				_timestamp: data_timestamp,
+				pk: rowrole.user_id
+			})
 
 			// apabila ada keperluan pengelohan data setelah dihapus, lakukan di extender
 			if (typeof Extender.roleDeleted === 'function') {
@@ -2441,6 +2638,9 @@ async function user_roleDeleteRows(self, body) {
 
 	try {
 
+
+		const data_timestamp = (new Date()).toISOString()
+
 		let user_id
 		const result = await db.tx(async tx=>{
 			sqlUtil.connect(tx)
@@ -2464,6 +2664,12 @@ async function user_roleDeleteRows(self, body) {
 				const cmd = sqlUtil.createDeleteCommand(roleTableName, ['userrole_id'])
 				const deletedRow = await cmd.execute(param)
 
+				// update timestamp pada header
+				tx.none(`update ${headerTableName} set _timestamp=$[_timestamp] where ${headerPrimaryKey}=$[pk]`, {
+					_timestamp: data_timestamp,
+					pk: rowrole.user_id
+				})
+				
 				// apabila ada keperluan pengelohan data setelah dihapus, lakukan di extender
 				if (typeof Extender.roleDeleted === 'function') {
 					// export async function roleDeleted(self, tx, deletedRow, logMetadata) {}

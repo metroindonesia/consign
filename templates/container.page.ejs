@@ -15,11 +15,9 @@
 
 	<% if (iconMenuUrl) { %>
 	<link id="main-menu-icon" rel="preload" href="<%= iconMenuUrl %>" as="image">
-	<% } else { %>	
-	<link id="main-menu-icon">	
-	<% } %>	
+	<% } %>
 
-
+	
 	<% if (fgta5jsDebugMode) { %>
 		<!-- DEBUG MODE <%=libDebug%>-->
 		<%- include(libDebug) %>
@@ -35,7 +33,16 @@
 
 	<!-- Container CSS -->
 	<link rel="stylesheet" href="public/modules/container/container.css" />
-	<link rel="stylesheet" href="public/local/application.css" />
+
+	
+	<% if (themeCssUrl) { %>
+		<link rel="stylesheet" href="<%= themeCssUrl %>"/>
+	<% } else { %>
+		<% if (cssApplicationExists) { %>
+		<link rel="stylesheet" href="public/local/application.css" />
+		<% } %>
+	<% } %>	
+	
 
 	<style>
 		#loadingindicator {

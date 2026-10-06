@@ -9,13 +9,15 @@ import db from '@agung_dhewe/webapps/src/db.js'
 import Api from '@agung_dhewe/webapps/src/api.js'
 import sqlUtil from '@agung_dhewe/pgsqlc'
 import context from '@agung_dhewe/webapps/src/context.js'  
+import { getProgramSetting } from '@agung_dhewe/webapps/src/helper.js'
 import logger from '@agung_dhewe/webapps/src/logger.js'
 
 import * as Extender from './extenders/programgroup.apiext.js'
 
 const moduleName = 'programgroup'
 const headerSectionName = 'header'
-const headerTableName = 'core.programgroup' 	
+const headerTableName = 'core.programgroup' 
+const headerPrimaryKey = 'programgroup_id' 	
 
 // api: account
 export default class extends Api {
@@ -62,6 +64,9 @@ async function programgroup_init(self, body) {
 			}
 		}
 
+		const programName = req.params.modulename;
+		const variance = req.query.variance;
+		const programSetting = await getProgramSetting(db, programName, variance)
 		const initialData = {
 			userId: req.session.user.userId,
 			userName: req.session.user.userName,
@@ -71,7 +76,9 @@ async function programgroup_init(self, body) {
 			notifierSocket: req.app.locals.appConfig.notifierSocket,
 			appName: req.app.locals.appConfig.appName,
 			appsUrls: appsUrls,
-			setting: {}
+			setting: {
+				program: programSetting
+			}
 		}
 		
 		if (typeof Extender.programgroup_init === 'function') {
@@ -177,11 +184,11 @@ async function programgroup_headerList(self, body) {
 			if (i>max_rows) { break }
 
 			// lookup: programgroup_parent_name dari field programgroup_name pada table core.programgroup dimana (core.programgroup.programgroup_id = core.programgroup.programgroup_parent)
-			{
+			if (row.programgroup_parent !== undefined) {
 				const { programgroup_name } = await sqlUtil.lookupdb(db, 'core.programgroup', 'programgroup_id', row.programgroup_parent)
-				row.programgroup_parent_name = programgroup_name
+				row.programgroup_parent_name = programgroup_name ?? null
 			}
-			
+			 
 			// pasang extender di sini
 			if (typeof Extender.headerListRow === 'function') {
 				// export async function headerListRow(self, row, args) {}
@@ -231,20 +238,19 @@ async function programgroup_headerOpen(self, body) {
 		}	
 
 		// lookup: programgroup_parent_name dari field programgroup_name pada table core.programgroup dimana (core.programgroup.programgroup_id = core.programgroup.programgroup_parent)
-		{
+		if (data.programgroup_parent !== undefined) {
 			const { programgroup_name } = await sqlUtil.lookupdb(db, 'core.programgroup', 'programgroup_id', data.programgroup_parent)
-			data.programgroup_parent_name = programgroup_name
+			data.programgroup_parent_name = programgroup_name ?? null
 		}
-		
-
+		 
 		// lookup data createby
-		{
+		if (data._createby !== undefined) {
 			const { user_fullname } = await sqlUtil.lookupdb(db, 'core.user', 'user_id', data._createby)
 			data._createby = user_fullname ?? ''
 		}
 
 		// lookup data modifyby
-		{
+		if (data._modifyby !== undefined) {
 			const { user_fullname } = await sqlUtil.lookupdb(db, 'core.user', 'user_id', data._modifyby)
 			data._modifyby = user_fullname ?? ''
 		}
@@ -275,9 +281,11 @@ async function programgroup_headerCreate(self, body) {
 		// parse uploaded data
 		const files = Api.parseUploadData(data, req.files)
 
+		const data_timestamp = (new Date()).toISOString()
 
 		data._createby = user_id
-		data._createdate = (new Date()).toISOString()
+		data._createdate = data_timestamp
+		data._timestamp = data_timestamp
 
 		const result = await db.tx(async tx=>{
 			sqlUtil.connect(tx)
@@ -328,9 +336,12 @@ async function programgroup_headerUpdate(self, body) {
 		// parse uploaded data
 		const files = Api.parseUploadData(data, req.files)
 
+		const data_timestamp = (new Date()).toISOString()
 
 		data._modifyby = user_id
-		data._modifydate = (new Date()).toISOString()
+		data._modifydate = data_timestamp
+		data._timestamp = data_timestamp
+
 
 		const result = await db.tx(async tx=>{
 			sqlUtil.connect(tx)

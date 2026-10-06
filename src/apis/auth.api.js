@@ -9,13 +9,15 @@ import db from '@agung_dhewe/webapps/src/db.js'
 import Api from '@agung_dhewe/webapps/src/api.js'
 import sqlUtil from '@agung_dhewe/pgsqlc'
 import context from '@agung_dhewe/webapps/src/context.js'  
+import { getProgramSetting } from '@agung_dhewe/webapps/src/helper.js'
 import logger from '@agung_dhewe/webapps/src/logger.js'
 
 import * as Extender from './extenders/auth.apiext.js'
 
 const moduleName = 'auth'
 const headerSectionName = 'header'
-const headerTableName = 'core.auth' 	
+const headerTableName = 'core.auth' 
+const headerPrimaryKey = 'auth_id' 	
 
 // api: account
 export default class extends Api {
@@ -62,6 +64,9 @@ async function auth_init(self, body) {
 			}
 		}
 
+		const programName = req.params.modulename;
+		const variance = req.query.variance;
+		const programSetting = await getProgramSetting(db, programName, variance)
 		const initialData = {
 			userId: req.session.user.userId,
 			userName: req.session.user.userName,
@@ -71,7 +76,9 @@ async function auth_init(self, body) {
 			notifierSocket: req.app.locals.appConfig.notifierSocket,
 			appName: req.app.locals.appConfig.appName,
 			appsUrls: appsUrls,
-			setting: {}
+			setting: {
+				program: programSetting
+			}
 		}
 		
 		if (typeof Extender.auth_init === 'function') {
@@ -177,16 +184,16 @@ async function auth_headerList(self, body) {
 			if (i>max_rows) { break }
 
 			// lookup: user_fullname dari field user_fullname pada table core.user dimana (core.user.user_id = core.auth.user_id)
-			{
+			if (row.user_id !== undefined) {
 				const { user_fullname } = await sqlUtil.lookupdb(db, 'core.user', 'user_id', row.user_id)
-				row.user_fullname = user_fullname
+				row.user_fullname = user_fullname ?? null
 			}
 			// lookup: delegate_user_name dari field user_fullname pada table core.user dimana (core.user.user_id = core.auth.delegate_user_id)
-			{
+			if (row.delegate_user_id !== undefined) {
 				const { user_fullname } = await sqlUtil.lookupdb(db, 'core.user', 'user_id', row.delegate_user_id)
-				row.delegate_user_name = user_fullname
+				row.delegate_user_name = user_fullname ?? null
 			}
-			
+			 
 			// pasang extender di sini
 			if (typeof Extender.headerListRow === 'function') {
 				// export async function headerListRow(self, row, args) {}
@@ -236,25 +243,24 @@ async function auth_headerOpen(self, body) {
 		}	
 
 		// lookup: user_fullname dari field user_fullname pada table core.user dimana (core.user.user_id = core.auth.user_id)
-		{
+		if (data.user_id !== undefined) {
 			const { user_fullname } = await sqlUtil.lookupdb(db, 'core.user', 'user_id', data.user_id)
-			data.user_fullname = user_fullname
+			data.user_fullname = user_fullname ?? null
 		}
 		// lookup: delegate_user_name dari field user_fullname pada table core.user dimana (core.user.user_id = core.auth.delegate_user_id)
-		{
+		if (data.delegate_user_id !== undefined) {
 			const { user_fullname } = await sqlUtil.lookupdb(db, 'core.user', 'user_id', data.delegate_user_id)
-			data.delegate_user_name = user_fullname
+			data.delegate_user_name = user_fullname ?? null
 		}
-		
-
+		 
 		// lookup data createby
-		{
+		if (data._createby !== undefined) {
 			const { user_fullname } = await sqlUtil.lookupdb(db, 'core.user', 'user_id', data._createby)
 			data._createby = user_fullname ?? ''
 		}
 
 		// lookup data modifyby
-		{
+		if (data._modifyby !== undefined) {
 			const { user_fullname } = await sqlUtil.lookupdb(db, 'core.user', 'user_id', data._modifyby)
 			data._modifyby = user_fullname ?? ''
 		}
@@ -285,9 +291,11 @@ async function auth_headerCreate(self, body) {
 		// parse uploaded data
 		const files = Api.parseUploadData(data, req.files)
 
+		const data_timestamp = (new Date()).toISOString()
 
 		data._createby = user_id
-		data._createdate = (new Date()).toISOString()
+		data._createdate = data_timestamp
+		data._timestamp = data_timestamp
 
 		const result = await db.tx(async tx=>{
 			sqlUtil.connect(tx)
@@ -338,9 +346,12 @@ async function auth_headerUpdate(self, body) {
 		// parse uploaded data
 		const files = Api.parseUploadData(data, req.files)
 
+		const data_timestamp = (new Date()).toISOString()
 
 		data._modifyby = user_id
-		data._modifydate = (new Date()).toISOString()
+		data._modifydate = data_timestamp
+		data._timestamp = data_timestamp
+
 
 		const result = await db.tx(async tx=>{
 			sqlUtil.connect(tx)

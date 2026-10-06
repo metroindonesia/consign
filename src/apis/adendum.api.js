@@ -9,6 +9,7 @@ import db from '@agung_dhewe/webapps/src/db.js'
 import Api from '@agung_dhewe/webapps/src/api.js'
 import sqlUtil from '@agung_dhewe/pgsqlc'
 import context from '@agung_dhewe/webapps/src/context.js'  
+import { getProgramSetting } from '@agung_dhewe/webapps/src/helper.js'
 import logger from '@agung_dhewe/webapps/src/logger.js'
 import { createSequencerLine } from '@agung_dhewe/webapps/src/sequencerline.js' 
 
@@ -17,6 +18,7 @@ import * as Extender from './extenders/adendum.apiext.js'
 const moduleName = 'adendum'
 const headerSectionName = 'header'
 const headerTableName = 'public.adendum' 
+const headerPrimaryKey = 'adendum_id' 
 const brandTableName = 'public.adendumbrand'  
 const marginTableName = 'public.adendummargin'  	
 
@@ -81,6 +83,9 @@ async function adendum_init(self, body) {
 			}
 		}
 
+		const programName = req.params.modulename;
+		const variance = req.query.variance;
+		const programSetting = await getProgramSetting(db, programName, variance)
 		const initialData = {
 			userId: req.session.user.userId,
 			userName: req.session.user.userName,
@@ -90,7 +95,9 @@ async function adendum_init(self, body) {
 			notifierSocket: req.app.locals.appConfig.notifierSocket,
 			appName: req.app.locals.appConfig.appName,
 			appsUrls: appsUrls,
-			setting: {}
+			setting: {
+				program: programSetting
+			}
 		}
 		
 		if (typeof Extender.adendum_init === 'function') {
@@ -196,16 +203,16 @@ async function adendum_headerList(self, body) {
 			if (i>max_rows) { break }
 
 			// lookup: agreement_desc dari field agreement_desc pada table public.agreement dimana (public.agreement.agreement_id = public.adendum.agreement_id)
-			{
+			if (row.agreement_id !== undefined) {
 				const { agreement_desc } = await sqlUtil.lookupdb(db, 'public.agreement', 'agreement_id', row.agreement_id)
-				row.agreement_desc = agreement_desc
+				row.agreement_desc = agreement_desc ?? null
 			}
 			// lookup: adendumtype_name dari field adendumtype_name pada table public.adendumtype dimana (public.adendumtype.adendumtype_id = public.adendum.adendumtype_id)
-			{
+			if (row.adendumtype_id !== undefined) {
 				const { adendumtype_name } = await sqlUtil.lookupdb(db, 'public.adendumtype', 'adendumtype_id', row.adendumtype_id)
-				row.adendumtype_name = adendumtype_name
+				row.adendumtype_name = adendumtype_name ?? null
 			}
-			
+			 
 			// pasang extender di sini
 			if (typeof Extender.headerListRow === 'function') {
 				// export async function headerListRow(self, row, args) {}
@@ -255,25 +262,24 @@ async function adendum_headerOpen(self, body) {
 		}	
 
 		// lookup: agreement_desc dari field agreement_desc pada table public.agreement dimana (public.agreement.agreement_id = public.adendum.agreement_id)
-		{
+		if (data.agreement_id !== undefined) {
 			const { agreement_desc } = await sqlUtil.lookupdb(db, 'public.agreement', 'agreement_id', data.agreement_id)
-			data.agreement_desc = agreement_desc
+			data.agreement_desc = agreement_desc ?? null
 		}
 		// lookup: adendumtype_name dari field adendumtype_name pada table public.adendumtype dimana (public.adendumtype.adendumtype_id = public.adendum.adendumtype_id)
-		{
+		if (data.adendumtype_id !== undefined) {
 			const { adendumtype_name } = await sqlUtil.lookupdb(db, 'public.adendumtype', 'adendumtype_id', data.adendumtype_id)
-			data.adendumtype_name = adendumtype_name
+			data.adendumtype_name = adendumtype_name ?? null
 		}
-		
-
+		 
 		// lookup data createby
-		{
+		if (data._createby !== undefined) {
 			const { user_fullname } = await sqlUtil.lookupdb(db, 'core.user', 'user_id', data._createby)
 			data._createby = user_fullname ?? ''
 		}
 
 		// lookup data modifyby
-		{
+		if (data._modifyby !== undefined) {
 			const { user_fullname } = await sqlUtil.lookupdb(db, 'core.user', 'user_id', data._modifyby)
 			data._modifyby = user_fullname ?? ''
 		}
@@ -304,9 +310,11 @@ async function adendum_headerCreate(self, body) {
 		// parse uploaded data
 		const files = Api.parseUploadData(data, req.files)
 
+		const data_timestamp = (new Date()).toISOString()
 
 		data._createby = user_id
-		data._createdate = (new Date()).toISOString()
+		data._createdate = data_timestamp
+		data._timestamp = data_timestamp
 
 		const result = await db.tx(async tx=>{
 			sqlUtil.connect(tx)
@@ -373,9 +381,12 @@ async function adendum_headerUpdate(self, body) {
 		// parse uploaded data
 		const files = Api.parseUploadData(data, req.files)
 
+		const data_timestamp = (new Date()).toISOString()
 
 		data._modifyby = user_id
-		data._modifydate = (new Date()).toISOString()
+		data._modifydate = data_timestamp
+		data._timestamp = data_timestamp
+
 
 		const result = await db.tx(async tx=>{
 			sqlUtil.connect(tx)
@@ -580,12 +591,11 @@ async function adendum_brandList(self, body) {
 			if (i>max_rows) { break }
 
 			// lookup: brand_name dari field brand_name pada table public.brand dimana (public.brand.brand_id = public.adendum.brand_id)
-			{
+			if (row.brand_id !== undefined) {
 				const { brand_name } = await sqlUtil.lookupdb(db, 'public.brand', 'brand_id', row.brand_id)
-				row.brand_name = brand_name
+				row.brand_name = brand_name ?? null
 			}
-			
-
+			 
 			// pasang extender di sini
 			if (typeof Extender.detilListRow === 'function') {
 				// export async function detilListRow(self, row, args) {}
@@ -643,20 +653,19 @@ async function adendum_brandOpen(self, body) {
 
 
 		// lookup: brand_name dari field brand_name pada table public.brand dimana (public.brand.brand_id = public.adendum.brand_id)
-		{
+		if (data.brand_id !== undefined) {
 			const { brand_name } = await sqlUtil.lookupdb(db, 'public.brand', 'brand_id', data.brand_id)
-			data.brand_name = brand_name
+			data.brand_name = brand_name ?? null
 		}
-		
-
+		  
 		// lookup data createby
-		{
+		if (data._createby !== undefined) {
 			const { user_fullname } = await sqlUtil.lookupdb(db, 'core.user', 'user_id', data._createby)
 			data._createby = user_fullname ?? ''
 		}
 
 		// lookup data modifyby
-		{
+		if (data._modifyby !== undefined) {
 			const { user_fullname } = await sqlUtil.lookupdb(db, 'core.user', 'user_id', data._modifyby)
 			data._modifyby = user_fullname ?? ''
 		}	
@@ -687,9 +696,11 @@ async function adendum_brandCreate(self, body) {
 		// parse uploaded data
 		const files = Api.parseUploadData(data, req.files)
 
+		const data_timestamp = (new Date()).toISOString()
 
 		data._createby = user_id
-		data._createdate = (new Date()).toISOString()
+		data._createdate = data_timestamp
+		data._timestamp = data_timestamp
 
 		const result = await db.tx(async tx=>{
 			sqlUtil.connect(tx)
@@ -697,7 +708,7 @@ async function adendum_brandCreate(self, body) {
 
 			const args = { 
 				section: 'brand', 
-				prefix: 'ADD'	
+				doc_id: 'ADD'	
 			}
 
 			const sequencer = createSequencerLine(tx, {})
@@ -711,7 +722,7 @@ async function adendum_brandCreate(self, body) {
 			}
 
 
-			const seqdata = await sequencer.increment(args.prefix)
+			const seqdata = await sequencer.increment(args.doc_id)
 			data.adendumbrand_id = seqdata.id
 
 			// apabila ada keperluan pengolahan data SEBELUM disimpan
@@ -723,6 +734,14 @@ async function adendum_brandCreate(self, body) {
 			const cmd = sqlUtil.createInsertCommand(tablename, data)
 			const ret = await cmd.execute(data)
 			
+
+			// update timestamp pada header
+			tx.none(`update ${headerTableName} set _timestamp=$[_timestamp] where ${headerPrimaryKey}=$[pk]`, {
+				_timestamp: data_timestamp,
+				pk: data.adendum_id
+			})
+
+
 			const logMetadata = {}
 
 			// apabila ada keperluan pengelohan data setelah disimpan, lakukan di extender headerCreated
@@ -755,12 +774,18 @@ async function adendum_brandUpdate(self, body) {
 		// parse uploaded data
 		const files = Api.parseUploadData(data, req.files)
 
+		const data_timestamp = (new Date()).toISOString()
 
 		data._modifyby = user_id
-		data._modifydate = (new Date()).toISOString()
+		data._modifydate = data_timestamp
+		data._timestamp = data_timestamp
 
 		const result = await db.tx(async tx=>{
 			sqlUtil.connect(tx)
+
+			const dataToUpdate = {adendumbrand_id: data.adendumbrand_id}
+			const sql = `select * from ${brandTableName} where adendumbrand_id=\${adendumbrand_id}`
+			const rowbrand = await tx.oneOrNone(sql, dataToUpdate)
 
 
 			// apabila ada keperluan pengolahan data SEBELUM disimpan
@@ -772,6 +797,13 @@ async function adendum_brandUpdate(self, body) {
 			const cmd =  sqlUtil.createUpdateCommand(tablename, data, ['adendumbrand_id'])
 			const ret = await cmd.execute(data)
 			
+
+			// update timestamp pada header
+			tx.none(`update ${headerTableName} set _timestamp=$[_timestamp] where ${headerPrimaryKey}=$[pk]`, {
+				_timestamp: data_timestamp,
+				pk: rowbrand.adendum_id
+			})
+
 			const logMetadata = {}
 
 			// apabila ada keperluan pengelohan data setelah disimpan, lakukan di extender headerCreated
@@ -801,6 +833,8 @@ async function adendum_brandDelete(self, body) {
 
 	try {
 
+		const data_timestamp = (new Date()).toISOString()
+
 		const deletedRow = await db.tx(async tx=>{
 			sqlUtil.connect(tx)
 
@@ -819,6 +853,13 @@ async function adendum_brandDelete(self, body) {
 			const param = {adendumbrand_id: rowbrand.adendumbrand_id}
 			const cmd = sqlUtil.createDeleteCommand(brandTableName, ['adendumbrand_id'])
 			const deletedRow = await cmd.execute(param)
+
+
+			// update timestamp pada header
+			tx.none(`update ${headerTableName} set _timestamp=$[_timestamp] where ${headerPrimaryKey}=$[pk]`, {
+				_timestamp: data_timestamp,
+				pk: rowbrand.adendum_id
+			})
 
 			// apabila ada keperluan pengelohan data setelah dihapus, lakukan di extender
 			if (typeof Extender.brandDeleted === 'function') {
@@ -849,6 +890,9 @@ async function adendum_brandDeleteRows(self, body) {
 
 	try {
 
+
+		const data_timestamp = (new Date()).toISOString()
+
 		let adendum_id
 		const result = await db.tx(async tx=>{
 			sqlUtil.connect(tx)
@@ -872,6 +916,12 @@ async function adendum_brandDeleteRows(self, body) {
 				const cmd = sqlUtil.createDeleteCommand(brandTableName, ['adendumbrand_id'])
 				const deletedRow = await cmd.execute(param)
 
+				// update timestamp pada header
+				tx.none(`update ${headerTableName} set _timestamp=$[_timestamp] where ${headerPrimaryKey}=$[pk]`, {
+					_timestamp: data_timestamp,
+					pk: rowbrand.adendum_id
+				})
+				
 				// apabila ada keperluan pengelohan data setelah dihapus, lakukan di extender
 				if (typeof Extender.brandDeleted === 'function') {
 					// export async function brandDeleted(self, tx, deletedRow, logMetadata) {}
@@ -958,12 +1008,11 @@ async function adendum_marginList(self, body) {
 			if (i>max_rows) { break }
 
 			// lookup: marginrange_desc dari field marginrange_desc pada table public.marginrange dimana (public.marginrange.marginrange_id = public.adendum.marginrange_id)
-			{
+			if (row.marginrange_id !== undefined) {
 				const { marginrange_desc } = await sqlUtil.lookupdb(db, 'public.marginrange', 'marginrange_id', row.marginrange_id)
-				row.marginrange_desc = marginrange_desc
+				row.marginrange_desc = marginrange_desc ?? null
 			}
-			
-
+			 
 			// pasang extender di sini
 			if (typeof Extender.detilListRow === 'function') {
 				// export async function detilListRow(self, row, args) {}
@@ -1021,20 +1070,19 @@ async function adendum_marginOpen(self, body) {
 
 
 		// lookup: marginrange_desc dari field marginrange_desc pada table public.marginrange dimana (public.marginrange.marginrange_id = public.adendum.marginrange_id)
-		{
+		if (data.marginrange_id !== undefined) {
 			const { marginrange_desc } = await sqlUtil.lookupdb(db, 'public.marginrange', 'marginrange_id', data.marginrange_id)
-			data.marginrange_desc = marginrange_desc
+			data.marginrange_desc = marginrange_desc ?? null
 		}
-		
-
+		  
 		// lookup data createby
-		{
+		if (data._createby !== undefined) {
 			const { user_fullname } = await sqlUtil.lookupdb(db, 'core.user', 'user_id', data._createby)
 			data._createby = user_fullname ?? ''
 		}
 
 		// lookup data modifyby
-		{
+		if (data._modifyby !== undefined) {
 			const { user_fullname } = await sqlUtil.lookupdb(db, 'core.user', 'user_id', data._modifyby)
 			data._modifyby = user_fullname ?? ''
 		}	
@@ -1065,9 +1113,11 @@ async function adendum_marginCreate(self, body) {
 		// parse uploaded data
 		const files = Api.parseUploadData(data, req.files)
 
+		const data_timestamp = (new Date()).toISOString()
 
 		data._createby = user_id
-		data._createdate = (new Date()).toISOString()
+		data._createdate = data_timestamp
+		data._timestamp = data_timestamp
 
 		const result = await db.tx(async tx=>{
 			sqlUtil.connect(tx)
@@ -1075,7 +1125,7 @@ async function adendum_marginCreate(self, body) {
 
 			const args = { 
 				section: 'margin', 
-				prefix: 'ADD'	
+				doc_id: 'ADD'	
 			}
 
 			const sequencer = createSequencerLine(tx, {})
@@ -1089,7 +1139,7 @@ async function adendum_marginCreate(self, body) {
 			}
 
 
-			const seqdata = await sequencer.increment(args.prefix)
+			const seqdata = await sequencer.increment(args.doc_id)
 			data.adendummargin_id = seqdata.id
 
 			// apabila ada keperluan pengolahan data SEBELUM disimpan
@@ -1101,6 +1151,14 @@ async function adendum_marginCreate(self, body) {
 			const cmd = sqlUtil.createInsertCommand(tablename, data)
 			const ret = await cmd.execute(data)
 			
+
+			// update timestamp pada header
+			tx.none(`update ${headerTableName} set _timestamp=$[_timestamp] where ${headerPrimaryKey}=$[pk]`, {
+				_timestamp: data_timestamp,
+				pk: data.adendum_id
+			})
+
+
 			const logMetadata = {}
 
 			// apabila ada keperluan pengelohan data setelah disimpan, lakukan di extender headerCreated
@@ -1133,12 +1191,18 @@ async function adendum_marginUpdate(self, body) {
 		// parse uploaded data
 		const files = Api.parseUploadData(data, req.files)
 
+		const data_timestamp = (new Date()).toISOString()
 
 		data._modifyby = user_id
-		data._modifydate = (new Date()).toISOString()
+		data._modifydate = data_timestamp
+		data._timestamp = data_timestamp
 
 		const result = await db.tx(async tx=>{
 			sqlUtil.connect(tx)
+
+			const dataToUpdate = {adendummargin_id: data.adendummargin_id}
+			const sql = `select * from ${marginTableName} where adendummargin_id=\${adendummargin_id}`
+			const rowmargin = await tx.oneOrNone(sql, dataToUpdate)
 
 
 			// apabila ada keperluan pengolahan data SEBELUM disimpan
@@ -1150,6 +1214,13 @@ async function adendum_marginUpdate(self, body) {
 			const cmd =  sqlUtil.createUpdateCommand(tablename, data, ['adendummargin_id'])
 			const ret = await cmd.execute(data)
 			
+
+			// update timestamp pada header
+			tx.none(`update ${headerTableName} set _timestamp=$[_timestamp] where ${headerPrimaryKey}=$[pk]`, {
+				_timestamp: data_timestamp,
+				pk: rowmargin.adendum_id
+			})
+
 			const logMetadata = {}
 
 			// apabila ada keperluan pengelohan data setelah disimpan, lakukan di extender headerCreated
@@ -1179,6 +1250,8 @@ async function adendum_marginDelete(self, body) {
 
 	try {
 
+		const data_timestamp = (new Date()).toISOString()
+
 		const deletedRow = await db.tx(async tx=>{
 			sqlUtil.connect(tx)
 
@@ -1197,6 +1270,13 @@ async function adendum_marginDelete(self, body) {
 			const param = {adendummargin_id: rowmargin.adendummargin_id}
 			const cmd = sqlUtil.createDeleteCommand(marginTableName, ['adendummargin_id'])
 			const deletedRow = await cmd.execute(param)
+
+
+			// update timestamp pada header
+			tx.none(`update ${headerTableName} set _timestamp=$[_timestamp] where ${headerPrimaryKey}=$[pk]`, {
+				_timestamp: data_timestamp,
+				pk: rowmargin.adendum_id
+			})
 
 			// apabila ada keperluan pengelohan data setelah dihapus, lakukan di extender
 			if (typeof Extender.marginDeleted === 'function') {
@@ -1227,6 +1307,9 @@ async function adendum_marginDeleteRows(self, body) {
 
 	try {
 
+
+		const data_timestamp = (new Date()).toISOString()
+
 		let adendum_id
 		const result = await db.tx(async tx=>{
 			sqlUtil.connect(tx)
@@ -1250,6 +1333,12 @@ async function adendum_marginDeleteRows(self, body) {
 				const cmd = sqlUtil.createDeleteCommand(marginTableName, ['adendummargin_id'])
 				const deletedRow = await cmd.execute(param)
 
+				// update timestamp pada header
+				tx.none(`update ${headerTableName} set _timestamp=$[_timestamp] where ${headerPrimaryKey}=$[pk]`, {
+					_timestamp: data_timestamp,
+					pk: rowmargin.adendum_id
+				})
+				
 				// apabila ada keperluan pengelohan data setelah dihapus, lakukan di extender
 				if (typeof Extender.marginDeleted === 'function') {
 					// export async function marginDeleted(self, tx, deletedRow, logMetadata) {}

@@ -101,12 +101,28 @@ alter table core."setting"
 comment on column core."setting"._modifydate is 'waktu terakhir record dimodifikasi';
 
 
+-- =============================================
+-- FIELD: _timestamp timestamp with time zone
+-- =============================================
+-- ADD _timestamp
+alter table core."setting" add _timestamp timestamp with time zone not null default now();
+comment on column core."setting"._timestamp is 'data timestamp';
+
+-- MODIFY _timestamp
+alter table core."setting"
+	alter column _timestamp type timestamp with time zone,
+	ALTER COLUMN _timestamp SET DEFAULT now(),
+	ALTER COLUMN _timestamp SET NOT NULL;
+comment on column core."setting"._timestamp is 'data timestamp';
 
 
 -- =============================================
--- FOREIGN KEY CONSTRAINT
+-- INDEX
 -- =============================================
--- Add Foreign Key Constraint  	
+DROP INDEX IF EXISTS core.idx$core$setting$_timestamp;
+CREATE INDEX idx$core$setting$_timestamp ON core.setting (_timestamp);
+
+
 
 
 -- =============================================

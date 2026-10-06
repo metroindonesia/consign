@@ -16,6 +16,22 @@
     },
     "files.watcherExclude": {
       "**/node_modules": true
+    },
+    "remote.autoForwardPortsSource": "output",
+    "remote.restoreForwardedPorts": true,
+    "remote.portsAttributes": {
+      "3004": {
+        "label": "Consign Server",
+        "onAutoForward": "notify"
+      },
+      "6379": {
+        "label": "Redis Server",
+        "onAutoForward": "silent"
+      },
+      "8080": {
+        "label": "HTTP Service (8080)",
+        "onAutoForward": "silent"
+      }
     }
   },
   "launch": {

@@ -1,7 +1,7 @@
 {
   "appname": "consign",
   "name": "reporting",
-  "directory": "C:\\RZNIVE\\magang\\consign",
+  "directory": "/home/ubuntu/Development/metroindonesia/consign",
   "title": "Reporting",
   "description": "",
   "icon": "",

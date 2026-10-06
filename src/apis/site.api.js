@@ -9,13 +9,15 @@ import db from '@agung_dhewe/webapps/src/db.js'
 import Api from '@agung_dhewe/webapps/src/api.js'
 import sqlUtil from '@agung_dhewe/pgsqlc'
 import context from '@agung_dhewe/webapps/src/context.js'  
+import { getProgramSetting } from '@agung_dhewe/webapps/src/helper.js'
 import logger from '@agung_dhewe/webapps/src/logger.js'
 
 import * as Extender from './extenders/site.apiext.js'
 
 const moduleName = 'site'
 const headerSectionName = 'header'
-const headerTableName = 'public.site' 	
+const headerTableName = 'public.site' 
+const headerPrimaryKey = 'site_id' 	
 
 // api: account
 export default class extends Api {
@@ -62,6 +64,9 @@ async function site_init(self, body) {
 			}
 		}
 
+		const programName = req.params.modulename;
+		const variance = req.query.variance;
+		const programSetting = await getProgramSetting(db, programName, variance)
 		const initialData = {
 			userId: req.session.user.userId,
 			userName: req.session.user.userName,
@@ -71,7 +76,9 @@ async function site_init(self, body) {
 			notifierSocket: req.app.locals.appConfig.notifierSocket,
 			appName: req.app.locals.appConfig.appName,
 			appsUrls: appsUrls,
-			setting: {}
+			setting: {
+				program: programSetting
+			}
 		}
 		
 		if (typeof Extender.site_init === 'function') {
@@ -177,11 +184,11 @@ async function site_headerList(self, body) {
 			if (i>max_rows) { break }
 
 			// lookup: sitetype_name dari field sitetype_name pada table public.sitetype dimana (public.sitetype.sitetype_id = public.site.sitetype_id)
-			{
+			if (row.sitetype_id !== undefined) {
 				const { sitetype_name } = await sqlUtil.lookupdb(db, 'public.sitetype', 'sitetype_id', row.sitetype_id)
-				row.sitetype_name = sitetype_name
+				row.sitetype_name = sitetype_name ?? null
 			}
-			
+			 
 			// pasang extender di sini
 			if (typeof Extender.headerListRow === 'function') {
 				// export async function headerListRow(self, row, args) {}
@@ -231,20 +238,19 @@ async function site_headerOpen(self, body) {
 		}	
 
 		// lookup: sitetype_name dari field sitetype_name pada table public.sitetype dimana (public.sitetype.sitetype_id = public.site.sitetype_id)
-		{
+		if (data.sitetype_id !== undefined) {
 			const { sitetype_name } = await sqlUtil.lookupdb(db, 'public.sitetype', 'sitetype_id', data.sitetype_id)
-			data.sitetype_name = sitetype_name
+			data.sitetype_name = sitetype_name ?? null
 		}
-		
-
+		 
 		// lookup data createby
-		{
+		if (data._createby !== undefined) {
 			const { user_fullname } = await sqlUtil.lookupdb(db, 'core.user', 'user_id', data._createby)
 			data._createby = user_fullname ?? ''
 		}
 
 		// lookup data modifyby
-		{
+		if (data._modifyby !== undefined) {
 			const { user_fullname } = await sqlUtil.lookupdb(db, 'core.user', 'user_id', data._modifyby)
 			data._modifyby = user_fullname ?? ''
 		}
@@ -275,9 +281,11 @@ async function site_headerCreate(self, body) {
 		// parse uploaded data
 		const files = Api.parseUploadData(data, req.files)
 
+		const data_timestamp = (new Date()).toISOString()
 
 		data._createby = user_id
-		data._createdate = (new Date()).toISOString()
+		data._createdate = data_timestamp
+		data._timestamp = data_timestamp
 
 		const result = await db.tx(async tx=>{
 			sqlUtil.connect(tx)
@@ -328,9 +336,12 @@ async function site_headerUpdate(self, body) {
 		// parse uploaded data
 		const files = Api.parseUploadData(data, req.files)
 
+		const data_timestamp = (new Date()).toISOString()
 
 		data._modifyby = user_id
-		data._modifydate = (new Date()).toISOString()
+		data._modifydate = data_timestamp
+		data._timestamp = data_timestamp
+
 
 		const result = await db.tx(async tx=>{
 			sqlUtil.connect(tx)

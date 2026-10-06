@@ -9,6 +9,7 @@ import db from '@agung_dhewe/webapps/src/db.js'
 import Api from '@agung_dhewe/webapps/src/api.js'
 import sqlUtil from '@agung_dhewe/pgsqlc'
 import context from '@agung_dhewe/webapps/src/context.js'  
+import { getProgramSetting } from '@agung_dhewe/webapps/src/helper.js'
 import logger from '@agung_dhewe/webapps/src/logger.js'
 import { createSequencerLine } from '@agung_dhewe/webapps/src/sequencerline.js' 
 import bucket from '@agung_dhewe/webapps/src/bucket.js'	
@@ -18,6 +19,7 @@ import * as Extender from './extenders/agreement.apiext.js'
 const moduleName = 'agreement'
 const headerSectionName = 'header'
 const headerTableName = 'public.agreement' 
+const headerPrimaryKey = 'agreement_id' 
 const brandTableName = 'public.agreementbrand'  
 const marginTableName = 'public.agreementmargin'  
 const docTableName = 'public.agreementdoc'  	
@@ -91,6 +93,9 @@ async function agreement_init(self, body) {
 			}
 		}
 
+		const programName = req.params.modulename;
+		const variance = req.query.variance;
+		const programSetting = await getProgramSetting(db, programName, variance)
 		const initialData = {
 			userId: req.session.user.userId,
 			userName: req.session.user.userName,
@@ -100,7 +105,9 @@ async function agreement_init(self, body) {
 			notifierSocket: req.app.locals.appConfig.notifierSocket,
 			appName: req.app.locals.appConfig.appName,
 			appsUrls: appsUrls,
-			setting: {}
+			setting: {
+				program: programSetting
+			}
 		}
 		
 		if (typeof Extender.agreement_init === 'function') {
@@ -246,16 +253,16 @@ async function agreement_headerList(self, body) {
 			if (i>max_rows) { break }
 
 			// lookup: partner_name dari field partner_name pada table public.partner dimana (public.partner.partner_id = public.agreement.partner_id)
-			{
+			if (row.partner_id !== undefined) {
 				const { partner_name } = await sqlUtil.lookupdb(db, 'public.partner', 'partner_id', row.partner_id)
-				row.partner_name = partner_name
+				row.partner_name = partner_name ?? null
 			}
 			// lookup: site_name dari field site_name pada table public.site dimana (public.site.site_id = public.agreement.site_id)
-			{
+			if (row.site_id !== undefined) {
 				const { site_name } = await sqlUtil.lookupdb(db, 'public.site', 'site_id', row.site_id)
-				row.site_name = site_name
+				row.site_name = site_name ?? null
 			}
-			
+			 
 			// pasang extender di sini
 			if (typeof Extender.headerListRow === 'function') {
 				// export async function headerListRow(self, row, args) {}
@@ -305,25 +312,24 @@ async function agreement_headerOpen(self, body) {
 		}	
 
 		// lookup: partner_name dari field partner_name pada table public.partner dimana (public.partner.partner_id = public.agreement.partner_id)
-		{
+		if (data.partner_id !== undefined) {
 			const { partner_name } = await sqlUtil.lookupdb(db, 'public.partner', 'partner_id', data.partner_id)
-			data.partner_name = partner_name
+			data.partner_name = partner_name ?? null
 		}
 		// lookup: site_name dari field site_name pada table public.site dimana (public.site.site_id = public.agreement.site_id)
-		{
+		if (data.site_id !== undefined) {
 			const { site_name } = await sqlUtil.lookupdb(db, 'public.site', 'site_id', data.site_id)
-			data.site_name = site_name
+			data.site_name = site_name ?? null
 		}
-		
-
+		 
 		// lookup data createby
-		{
+		if (data._createby !== undefined) {
 			const { user_fullname } = await sqlUtil.lookupdb(db, 'core.user', 'user_id', data._createby)
 			data._createby = user_fullname ?? ''
 		}
 
 		// lookup data modifyby
-		{
+		if (data._modifyby !== undefined) {
 			const { user_fullname } = await sqlUtil.lookupdb(db, 'core.user', 'user_id', data._modifyby)
 			data._modifyby = user_fullname ?? ''
 		}
@@ -354,9 +360,11 @@ async function agreement_headerCreate(self, body) {
 		// parse uploaded data
 		const files = Api.parseUploadData(data, req.files)
 
+		const data_timestamp = (new Date()).toISOString()
 
 		data._createby = user_id
-		data._createdate = (new Date()).toISOString()
+		data._createdate = data_timestamp
+		data._timestamp = data_timestamp
 
 		const result = await db.tx(async tx=>{
 			sqlUtil.connect(tx)
@@ -423,9 +431,12 @@ async function agreement_headerUpdate(self, body) {
 		// parse uploaded data
 		const files = Api.parseUploadData(data, req.files)
 
+		const data_timestamp = (new Date()).toISOString()
 
 		data._modifyby = user_id
-		data._modifydate = (new Date()).toISOString()
+		data._modifydate = data_timestamp
+		data._timestamp = data_timestamp
+
 
 		const result = await db.tx(async tx=>{
 			sqlUtil.connect(tx)
@@ -661,12 +672,11 @@ async function agreement_brandList(self, body) {
 			if (i>max_rows) { break }
 
 			// lookup: brand_name dari field brand_name pada table public.brand dimana (public.brand.brand_id = public.agreement.brand_id)
-			{
+			if (row.brand_id !== undefined) {
 				const { brand_name } = await sqlUtil.lookupdb(db, 'public.brand', 'brand_id', row.brand_id)
-				row.brand_name = brand_name
+				row.brand_name = brand_name ?? null
 			}
-			
-
+			 
 			// pasang extender di sini
 			if (typeof Extender.detilListRow === 'function') {
 				// export async function detilListRow(self, row, args) {}
@@ -724,20 +734,19 @@ async function agreement_brandOpen(self, body) {
 
 
 		// lookup: brand_name dari field brand_name pada table public.brand dimana (public.brand.brand_id = public.agreement.brand_id)
-		{
+		if (data.brand_id !== undefined) {
 			const { brand_name } = await sqlUtil.lookupdb(db, 'public.brand', 'brand_id', data.brand_id)
-			data.brand_name = brand_name
+			data.brand_name = brand_name ?? null
 		}
-		
-
+		  
 		// lookup data createby
-		{
+		if (data._createby !== undefined) {
 			const { user_fullname } = await sqlUtil.lookupdb(db, 'core.user', 'user_id', data._createby)
 			data._createby = user_fullname ?? ''
 		}
 
 		// lookup data modifyby
-		{
+		if (data._modifyby !== undefined) {
 			const { user_fullname } = await sqlUtil.lookupdb(db, 'core.user', 'user_id', data._modifyby)
 			data._modifyby = user_fullname ?? ''
 		}	
@@ -768,9 +777,11 @@ async function agreement_brandCreate(self, body) {
 		// parse uploaded data
 		const files = Api.parseUploadData(data, req.files)
 
+		const data_timestamp = (new Date()).toISOString()
 
 		data._createby = user_id
-		data._createdate = (new Date()).toISOString()
+		data._createdate = data_timestamp
+		data._timestamp = data_timestamp
 
 		const result = await db.tx(async tx=>{
 			sqlUtil.connect(tx)
@@ -778,7 +789,7 @@ async function agreement_brandCreate(self, body) {
 
 			const args = { 
 				section: 'brand', 
-				prefix: 'AGR'	
+				doc_id: 'AGR'	
 			}
 
 			const sequencer = createSequencerLine(tx, {})
@@ -792,7 +803,7 @@ async function agreement_brandCreate(self, body) {
 			}
 
 
-			const seqdata = await sequencer.increment(args.prefix)
+			const seqdata = await sequencer.increment(args.doc_id)
 			data.agreementbrand_id = seqdata.id
 
 			// apabila ada keperluan pengolahan data SEBELUM disimpan
@@ -804,6 +815,14 @@ async function agreement_brandCreate(self, body) {
 			const cmd = sqlUtil.createInsertCommand(tablename, data)
 			const ret = await cmd.execute(data)
 			
+
+			// update timestamp pada header
+			tx.none(`update ${headerTableName} set _timestamp=$[_timestamp] where ${headerPrimaryKey}=$[pk]`, {
+				_timestamp: data_timestamp,
+				pk: data.agreement_id
+			})
+
+
 			const logMetadata = {}
 
 			// apabila ada keperluan pengelohan data setelah disimpan, lakukan di extender headerCreated
@@ -836,12 +855,18 @@ async function agreement_brandUpdate(self, body) {
 		// parse uploaded data
 		const files = Api.parseUploadData(data, req.files)
 
+		const data_timestamp = (new Date()).toISOString()
 
 		data._modifyby = user_id
-		data._modifydate = (new Date()).toISOString()
+		data._modifydate = data_timestamp
+		data._timestamp = data_timestamp
 
 		const result = await db.tx(async tx=>{
 			sqlUtil.connect(tx)
+
+			const dataToUpdate = {agreementbrand_id: data.agreementbrand_id}
+			const sql = `select * from ${brandTableName} where agreementbrand_id=\${agreementbrand_id}`
+			const rowbrand = await tx.oneOrNone(sql, dataToUpdate)
 
 
 			// apabila ada keperluan pengolahan data SEBELUM disimpan
@@ -853,6 +878,13 @@ async function agreement_brandUpdate(self, body) {
 			const cmd =  sqlUtil.createUpdateCommand(tablename, data, ['agreementbrand_id'])
 			const ret = await cmd.execute(data)
 			
+
+			// update timestamp pada header
+			tx.none(`update ${headerTableName} set _timestamp=$[_timestamp] where ${headerPrimaryKey}=$[pk]`, {
+				_timestamp: data_timestamp,
+				pk: rowbrand.agreement_id
+			})
+
 			const logMetadata = {}
 
 			// apabila ada keperluan pengelohan data setelah disimpan, lakukan di extender headerCreated
@@ -882,6 +914,8 @@ async function agreement_brandDelete(self, body) {
 
 	try {
 
+		const data_timestamp = (new Date()).toISOString()
+
 		const deletedRow = await db.tx(async tx=>{
 			sqlUtil.connect(tx)
 
@@ -900,6 +934,13 @@ async function agreement_brandDelete(self, body) {
 			const param = {agreementbrand_id: rowbrand.agreementbrand_id}
 			const cmd = sqlUtil.createDeleteCommand(brandTableName, ['agreementbrand_id'])
 			const deletedRow = await cmd.execute(param)
+
+
+			// update timestamp pada header
+			tx.none(`update ${headerTableName} set _timestamp=$[_timestamp] where ${headerPrimaryKey}=$[pk]`, {
+				_timestamp: data_timestamp,
+				pk: rowbrand.agreement_id
+			})
 
 			// apabila ada keperluan pengelohan data setelah dihapus, lakukan di extender
 			if (typeof Extender.brandDeleted === 'function') {
@@ -930,6 +971,9 @@ async function agreement_brandDeleteRows(self, body) {
 
 	try {
 
+
+		const data_timestamp = (new Date()).toISOString()
+
 		let agreement_id
 		const result = await db.tx(async tx=>{
 			sqlUtil.connect(tx)
@@ -953,6 +997,12 @@ async function agreement_brandDeleteRows(self, body) {
 				const cmd = sqlUtil.createDeleteCommand(brandTableName, ['agreementbrand_id'])
 				const deletedRow = await cmd.execute(param)
 
+				// update timestamp pada header
+				tx.none(`update ${headerTableName} set _timestamp=$[_timestamp] where ${headerPrimaryKey}=$[pk]`, {
+					_timestamp: data_timestamp,
+					pk: rowbrand.agreement_id
+				})
+				
 				// apabila ada keperluan pengelohan data setelah dihapus, lakukan di extender
 				if (typeof Extender.brandDeleted === 'function') {
 					// export async function brandDeleted(self, tx, deletedRow, logMetadata) {}
@@ -1039,12 +1089,11 @@ async function agreement_marginList(self, body) {
 			if (i>max_rows) { break }
 
 			// lookup: marginrange_desc dari field marginrange_desc pada table public.marginrange dimana (public.marginrange.marginrange_id = public.agreement.marginrange_id)
-			{
+			if (row.marginrange_id !== undefined) {
 				const { marginrange_desc } = await sqlUtil.lookupdb(db, 'public.marginrange', 'marginrange_id', row.marginrange_id)
-				row.marginrange_desc = marginrange_desc
+				row.marginrange_desc = marginrange_desc ?? null
 			}
-			
-
+			 
 			// pasang extender di sini
 			if (typeof Extender.detilListRow === 'function') {
 				// export async function detilListRow(self, row, args) {}
@@ -1102,20 +1151,19 @@ async function agreement_marginOpen(self, body) {
 
 
 		// lookup: marginrange_desc dari field marginrange_desc pada table public.marginrange dimana (public.marginrange.marginrange_id = public.agreement.marginrange_id)
-		{
+		if (data.marginrange_id !== undefined) {
 			const { marginrange_desc } = await sqlUtil.lookupdb(db, 'public.marginrange', 'marginrange_id', data.marginrange_id)
-			data.marginrange_desc = marginrange_desc
+			data.marginrange_desc = marginrange_desc ?? null
 		}
-		
-
+		  
 		// lookup data createby
-		{
+		if (data._createby !== undefined) {
 			const { user_fullname } = await sqlUtil.lookupdb(db, 'core.user', 'user_id', data._createby)
 			data._createby = user_fullname ?? ''
 		}
 
 		// lookup data modifyby
-		{
+		if (data._modifyby !== undefined) {
 			const { user_fullname } = await sqlUtil.lookupdb(db, 'core.user', 'user_id', data._modifyby)
 			data._modifyby = user_fullname ?? ''
 		}	
@@ -1146,9 +1194,11 @@ async function agreement_marginCreate(self, body) {
 		// parse uploaded data
 		const files = Api.parseUploadData(data, req.files)
 
+		const data_timestamp = (new Date()).toISOString()
 
 		data._createby = user_id
-		data._createdate = (new Date()).toISOString()
+		data._createdate = data_timestamp
+		data._timestamp = data_timestamp
 
 		const result = await db.tx(async tx=>{
 			sqlUtil.connect(tx)
@@ -1156,7 +1206,7 @@ async function agreement_marginCreate(self, body) {
 
 			const args = { 
 				section: 'margin', 
-				prefix: 'AGR'	
+				doc_id: 'AGR'	
 			}
 
 			const sequencer = createSequencerLine(tx, {})
@@ -1170,7 +1220,7 @@ async function agreement_marginCreate(self, body) {
 			}
 
 
-			const seqdata = await sequencer.increment(args.prefix)
+			const seqdata = await sequencer.increment(args.doc_id)
 			data.agreementmargin_id = seqdata.id
 
 			// apabila ada keperluan pengolahan data SEBELUM disimpan
@@ -1182,6 +1232,14 @@ async function agreement_marginCreate(self, body) {
 			const cmd = sqlUtil.createInsertCommand(tablename, data)
 			const ret = await cmd.execute(data)
 			
+
+			// update timestamp pada header
+			tx.none(`update ${headerTableName} set _timestamp=$[_timestamp] where ${headerPrimaryKey}=$[pk]`, {
+				_timestamp: data_timestamp,
+				pk: data.agreement_id
+			})
+
+
 			const logMetadata = {}
 
 			// apabila ada keperluan pengelohan data setelah disimpan, lakukan di extender headerCreated
@@ -1214,12 +1272,18 @@ async function agreement_marginUpdate(self, body) {
 		// parse uploaded data
 		const files = Api.parseUploadData(data, req.files)
 
+		const data_timestamp = (new Date()).toISOString()
 
 		data._modifyby = user_id
-		data._modifydate = (new Date()).toISOString()
+		data._modifydate = data_timestamp
+		data._timestamp = data_timestamp
 
 		const result = await db.tx(async tx=>{
 			sqlUtil.connect(tx)
+
+			const dataToUpdate = {agreementmargin_id: data.agreementmargin_id}
+			const sql = `select * from ${marginTableName} where agreementmargin_id=\${agreementmargin_id}`
+			const rowmargin = await tx.oneOrNone(sql, dataToUpdate)
 
 
 			// apabila ada keperluan pengolahan data SEBELUM disimpan
@@ -1231,6 +1295,13 @@ async function agreement_marginUpdate(self, body) {
 			const cmd =  sqlUtil.createUpdateCommand(tablename, data, ['agreementmargin_id'])
 			const ret = await cmd.execute(data)
 			
+
+			// update timestamp pada header
+			tx.none(`update ${headerTableName} set _timestamp=$[_timestamp] where ${headerPrimaryKey}=$[pk]`, {
+				_timestamp: data_timestamp,
+				pk: rowmargin.agreement_id
+			})
+
 			const logMetadata = {}
 
 			// apabila ada keperluan pengelohan data setelah disimpan, lakukan di extender headerCreated
@@ -1260,6 +1331,8 @@ async function agreement_marginDelete(self, body) {
 
 	try {
 
+		const data_timestamp = (new Date()).toISOString()
+
 		const deletedRow = await db.tx(async tx=>{
 			sqlUtil.connect(tx)
 
@@ -1278,6 +1351,13 @@ async function agreement_marginDelete(self, body) {
 			const param = {agreementmargin_id: rowmargin.agreementmargin_id}
 			const cmd = sqlUtil.createDeleteCommand(marginTableName, ['agreementmargin_id'])
 			const deletedRow = await cmd.execute(param)
+
+
+			// update timestamp pada header
+			tx.none(`update ${headerTableName} set _timestamp=$[_timestamp] where ${headerPrimaryKey}=$[pk]`, {
+				_timestamp: data_timestamp,
+				pk: rowmargin.agreement_id
+			})
 
 			// apabila ada keperluan pengelohan data setelah dihapus, lakukan di extender
 			if (typeof Extender.marginDeleted === 'function') {
@@ -1308,6 +1388,9 @@ async function agreement_marginDeleteRows(self, body) {
 
 	try {
 
+
+		const data_timestamp = (new Date()).toISOString()
+
 		let agreement_id
 		const result = await db.tx(async tx=>{
 			sqlUtil.connect(tx)
@@ -1331,6 +1414,12 @@ async function agreement_marginDeleteRows(self, body) {
 				const cmd = sqlUtil.createDeleteCommand(marginTableName, ['agreementmargin_id'])
 				const deletedRow = await cmd.execute(param)
 
+				// update timestamp pada header
+				tx.none(`update ${headerTableName} set _timestamp=$[_timestamp] where ${headerPrimaryKey}=$[pk]`, {
+					_timestamp: data_timestamp,
+					pk: rowmargin.agreement_id
+				})
+				
 				// apabila ada keperluan pengelohan data setelah dihapus, lakukan di extender
 				if (typeof Extender.marginDeleted === 'function') {
 					// export async function marginDeleted(self, tx, deletedRow, logMetadata) {}
@@ -1416,8 +1505,7 @@ async function agreement_docList(self, body) {
 			i++
 			if (i>max_rows) { break }
 
-			
-
+			 
 			// pasang extender di sini
 			if (typeof Extender.detilListRow === 'function') {
 				// export async function detilListRow(self, row, args) {}
@@ -1474,16 +1562,15 @@ async function agreement_docOpen(self, body) {
 		}	
 
 
-		
-
+		  
 		// lookup data createby
-		{
+		if (data._createby !== undefined) {
 			const { user_fullname } = await sqlUtil.lookupdb(db, 'core.user', 'user_id', data._createby)
 			data._createby = user_fullname ?? ''
 		}
 
 		// lookup data modifyby
-		{
+		if (data._modifyby !== undefined) {
 			const { user_fullname } = await sqlUtil.lookupdb(db, 'core.user', 'user_id', data._modifyby)
 			data._modifyby = user_fullname ?? ''
 		}	
@@ -1514,9 +1601,11 @@ async function agreement_docCreate(self, body) {
 		// parse uploaded data
 		const files = Api.parseUploadData(data, req.files)
 
+		const data_timestamp = (new Date()).toISOString()
 
 		data._createby = user_id
-		data._createdate = (new Date()).toISOString()
+		data._createdate = data_timestamp
+		data._timestamp = data_timestamp
 
 		const result = await db.tx(async tx=>{
 			sqlUtil.connect(tx)
@@ -1524,7 +1613,7 @@ async function agreement_docCreate(self, body) {
 
 			const args = { 
 				section: 'doc', 
-				prefix: 'AGR'	
+				doc_id: 'AGR'	
 			}
 
 			const sequencer = createSequencerLine(tx, {})
@@ -1538,7 +1627,7 @@ async function agreement_docCreate(self, body) {
 			}
 
 
-			const seqdata = await sequencer.increment(args.prefix)
+			const seqdata = await sequencer.increment(args.doc_id)
 			data.agreementdoc_id = seqdata.id
 
 			// apabila ada keperluan pengolahan data SEBELUM disimpan
@@ -1557,6 +1646,14 @@ async function agreement_docCreate(self, body) {
 				})
 			}
 			
+
+			// update timestamp pada header
+			tx.none(`update ${headerTableName} set _timestamp=$[_timestamp] where ${headerPrimaryKey}=$[pk]`, {
+				_timestamp: data_timestamp,
+				pk: data.agreement_id
+			})
+
+
 			const logMetadata = {}
 
 			// apabila ada keperluan pengelohan data setelah disimpan, lakukan di extender headerCreated
@@ -1589,12 +1686,18 @@ async function agreement_docUpdate(self, body) {
 		// parse uploaded data
 		const files = Api.parseUploadData(data, req.files)
 
+		const data_timestamp = (new Date()).toISOString()
 
 		data._modifyby = user_id
-		data._modifydate = (new Date()).toISOString()
+		data._modifydate = data_timestamp
+		data._timestamp = data_timestamp
 
 		const result = await db.tx(async tx=>{
 			sqlUtil.connect(tx)
+
+			const dataToUpdate = {agreementdoc_id: data.agreementdoc_id}
+			const sql = `select * from ${docTableName} where agreementdoc_id=\${agreementdoc_id}`
+			const rowdoc = await tx.oneOrNone(sql, dataToUpdate)
 
 
 			// apabila ada keperluan pengolahan data SEBELUM disimpan
@@ -1613,6 +1716,13 @@ async function agreement_docUpdate(self, body) {
 				})
 			}
 			
+
+			// update timestamp pada header
+			tx.none(`update ${headerTableName} set _timestamp=$[_timestamp] where ${headerPrimaryKey}=$[pk]`, {
+				_timestamp: data_timestamp,
+				pk: rowdoc.agreement_id
+			})
+
 			const logMetadata = {}
 
 			// apabila ada keperluan pengelohan data setelah disimpan, lakukan di extender headerCreated
@@ -1642,6 +1752,8 @@ async function agreement_docDelete(self, body) {
 
 	try {
 
+		const data_timestamp = (new Date()).toISOString()
+
 		const deletedRow = await db.tx(async tx=>{
 			sqlUtil.connect(tx)
 
@@ -1660,6 +1772,13 @@ async function agreement_docDelete(self, body) {
 			const param = {agreementdoc_id: rowdoc.agreementdoc_id}
 			const cmd = sqlUtil.createDeleteCommand(docTableName, ['agreementdoc_id'])
 			const deletedRow = await cmd.execute(param)
+
+
+			// update timestamp pada header
+			tx.none(`update ${headerTableName} set _timestamp=$[_timestamp] where ${headerPrimaryKey}=$[pk]`, {
+				_timestamp: data_timestamp,
+				pk: rowdoc.agreement_id
+			})
 
 			// apabila ada keperluan pengelohan data setelah dihapus, lakukan di extender
 			if (typeof Extender.docDeleted === 'function') {
@@ -1690,6 +1809,9 @@ async function agreement_docDeleteRows(self, body) {
 
 	try {
 
+
+		const data_timestamp = (new Date()).toISOString()
+
 		let agreement_id
 		const result = await db.tx(async tx=>{
 			sqlUtil.connect(tx)
@@ -1713,6 +1835,12 @@ async function agreement_docDeleteRows(self, body) {
 				const cmd = sqlUtil.createDeleteCommand(docTableName, ['agreementdoc_id'])
 				const deletedRow = await cmd.execute(param)
 
+				// update timestamp pada header
+				tx.none(`update ${headerTableName} set _timestamp=$[_timestamp] where ${headerPrimaryKey}=$[pk]`, {
+					_timestamp: data_timestamp,
+					pk: rowdoc.agreement_id
+				})
+				
 				// apabila ada keperluan pengelohan data setelah dihapus, lakukan di extender
 				if (typeof Extender.docDeleted === 'function') {
 					// export async function docDeleted(self, tx, deletedRow, logMetadata) {}
