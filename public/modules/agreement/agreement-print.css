@@ -1,0 +1,191 @@
+@media print {
+
+    #print-media-container,
+    #print-media-container.hidden {
+        display: block !important;
+        visibility: visible !important;
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 100%;
+        min-height: 100%;
+        margin: 0;
+        padding: 0;
+        font-size: 11pt;
+    }
+
+    #print-media-container * {
+        visibility: visible !important;
+    }
+
+    /* 1. Tengah Halaman cetak */
+    #print-area {
+        background-color: white !important;
+        margin: 5mm auto 0 auto;
+        /* auto membuat posisi center */
+        width: 100%;
+        max-width: 190mm;
+        /* Sesuai batas lebar area cetak A4 */
+        box-sizing: border-box;
+    }
+
+    #doc-title {
+        font-size: 11pt;
+        font-weight: bold;
+    }
+
+    /* 2. Boundary Container */
+    #doc-boundary {
+        border-radius: 12px !important;
+        border: 1px solid #000000c4 !important;
+        margin-top: 5mm;
+        padding: 3mm;
+        box-sizing: border-box;
+        display: block !important;
+        width: 100%;
+    }
+
+    #doc-header {
+        display: grid;
+        grid-template-columns: 18mm 1fr 18mm 1fr;
+        /* Lebar kolom seimbang */
+        grid-auto-rows: auto;
+        row-gap: 0;
+        column-gap: 0;
+        margin: 3mm 0 3mm 0;
+        padding: 0;
+        /* border: 1px solid #000; */
+        /* Border luar container header */
+        border-bottom: none;
+        /* Agar border antar baris tidak bertumpuk */
+    }
+
+    .prn-tbl-label {
+        font-size: 10pt;
+        font-weight: bold;
+        text-align: right;
+        padding: 1.5mm 2mm;
+        background-color: #f2f2f2;
+        /* border-bottom: 1px solid #000; */
+        /* border-right: 1px solid #000; */
+    }
+
+    .prn-tbl-value {
+        font-size: 10pt;
+        text-align: left;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        padding: 1.5mm 2mm;
+        /* border-bottom: 1px solid #000; */
+        /* border-right: 1px solid #000; */
+    }
+
+    /* Hilangkan border kanan pada kolom paling kanan */
+    .prn-tbl-value:nth-child(4n) {
+        border-right: none;
+    }
+
+    /* 3. STYLING TABEL UMUM (Vertikal) */
+    .tableitem {
+        width: 100%;
+        border-collapse: collapse;
+        margin: 0 0 3mm 0;
+        box-sizing: border-box;
+        table-layout: fixed;
+    }
+
+    .tableitem th,
+    .tableitem td {
+        border: 1px solid #000;
+        box-sizing: border-box;
+        word-wrap: break-word;
+    }
+
+    .tableitem [name="no"] {
+        width: 8%;
+        text-align: center;
+        padding: 1mm;
+    }
+
+    .tableitem [name="descr"] {
+        width: 67%;
+        text-align: left;
+        padding: 1mm 2mm;
+    }
+
+    .tableitem [name="value"] {
+        width: 25%;
+        text-align: right;
+        padding: 1mm 2mm;
+    }
+
+    #doc-detil-header th {
+        background-color: #dcdcdc;
+        font-weight: bold;
+        font-size: 10pt;
+        height: 6mm;
+        vertical-align: middle !important;
+    }
+
+    #doc-brand-body td,
+    #doc-margin-body td,
+    #doc-doc-body td {
+        vertical-align: top;
+        font-size: 10pt;
+        padding: 1mm 2mm;
+    }
+
+    /* 4. OVERRIDE KHUSUS TABEL BRAND HORIZONTAL */
+    #doc-brand {
+        table-layout: auto !important;
+        /* Auto width per kolom data */
+    }
+
+    #doc-brand th.rowheader {
+        width: 2.5cm;
+        background-color: #dcdcdc;
+        font-weight: bold;
+        font-size: 10pt;
+        text-align: center;
+        border: 1px solid #000;
+        padding: 1.5mm;
+    }
+
+    #doc-brand td {
+        width: auto !important;
+        /* Batalkan efek 67% dari .tableitem */
+        border: 1px solid #000;
+        padding: 1.5mm 2mm;
+        font-size: 10pt;
+    }
+
+    /* 5. Tanda Tangan */
+    #doc-sign {
+        display: flex;
+        justify-content: space-between;
+        margin-top: 1cm;
+        padding: 0 5mm;
+    }
+
+    #doc-sign .signbox {
+        min-width: 35mm;
+    }
+
+    #doc-sign .signbox-caption {
+        height: 5mm;
+        text-align: center;
+        font-size: 10pt;
+    }
+
+    #doc-sign .signbox-sign {
+        min-height: 20mm;
+        text-align: center;
+    }
+
+    #doc-sign .signbox-name {
+        text-align: center;
+        height: 5mm;
+        font-size: 10pt;
+    }
+}

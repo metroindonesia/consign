@@ -1,0 +1,60 @@
+services:
+  postgres:
+    image: postgres:16
+    container_name: postgres
+    hostname: postgres
+    restart: no #unless-stopped
+    environment:
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: rahasia123#
+      POSTGRES_DB: postgres
+    command: [ "postgres", "-c", "wal_level=logical", "-c", "max_replication_slots=10", "-c", "max_wal_senders=10" ]
+    volumes:
+      - ../.data/postgres:/var/lib/postgresql/data
+    ports:
+      - "5432:5432" # default port
+    networks:
+      - docker1
+
+  pgbouncer:
+    image: edoburu/pgbouncer:latest
+    container_name: pgbouncer
+    hostname: pgbouncer
+    restart: no #unless-stopped
+    environment:
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_USER: admin
+      DB_PASSWORD: rahasia123#
+      DB_NAME: accountingdb-dev
+      POOL_MODE: session
+      ADMIN_USERS: admin
+      AUTH_TYPE: scram-sha-256
+    ports:
+      - "6432:5432"
+    depends_on:
+      - postgres
+    networks:
+      - docker1
+
+  pgadmin:
+    image: dpage/pgadmin4
+    container_name: pgadmin
+    restart: no #unless-stopped
+    hostname: pgadmin
+    environment:
+      PGADMIN_DEFAULT_EMAIL: my@email.com
+      PGADMIN_DEFAULT_PASSWORD: rahasia123#
+    volumes:
+      - ../.data/pgadmin:/var/lib/pgadmin
+    ports:
+      - "5050:80"
+    depends_on:
+      - postgres
+    networks:
+      - docker1
+
+networks:
+  docker1:
+    name: docker1
+    external: true
