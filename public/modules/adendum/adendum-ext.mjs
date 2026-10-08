@@ -218,7 +218,7 @@ export async function obj_agreement_id_selected(self, obj_agreement_id, frm, evt
 					agreement_id: item.agreement_id,
 					isapprove: true
 				},
-				sort: { approvedate: 'DESC', adendum_id: 'DESC' },
+				sort: { adendum_seq: 'DESC', adendum_id: 'DESC' },
 				limit: 1
 			})
 
@@ -269,18 +269,18 @@ export const extenderMargin = {
 	}
 }
 
-// export const extenderBrand = {
-// 	async obj_brand_id_selecting_criteria(self, obj_brand_id, frm, criteria, sort, evt) {
-// 		const frmHeader = evt.detail.CurrentState.getHeaderForm()
-// 		const agreement_id = frmHeader.Inputs['adendumHeaderEdit-obj_agreement_id']?.value
-// 		if (!agreement_id) return
+export const extenderBrand = {
+	async obj_brand_id_selecting_criteria(self, obj_brand_id, frm, criteria, sort, evt) {
+		const frmHeader = evt.detail.CurrentState.getHeaderForm()
+		const agreement_id = frmHeader.Inputs['adendumHeaderEdit-obj_agreement_id']?.value
+		if (!agreement_id) return
 
-// 		const result = await Module.apiCall('agreement/header-open', { id: agreement_id })
-// 		if (result?.partner_id) {
-// 			criteria.partner_id = result.partner_id
-// 		}
-// 	}
-// }
+		const result = await Module.apiCall('agreement/header-open', { id: agreement_id })
+		if (result?.partner_id) {
+			criteria.partner_id = result.partner_id
+		}
+	}
+}
 
 export async function adendumHeaderEdit_dataSaving(self, dataToSave, frm, args) {
 	const startDate = frm.Inputs[_datestart].value

@@ -6,17 +6,18 @@ const _isapprove = "agreementHeaderEdit-obj_isapprove";
 const _datestart = "agreementHeaderEdit-obj_agreement_datestart";
 const _dateend = "agreementHeaderEdit-obj_agreement_dateend";
 const _adendum_id = "agreementHeaderEdit-obj_adendum_id";
+const _adendum_seq = "agreementHeaderEdit-obj_adendum_seq";
 
 export const extenderHeader = null;
-// export const extenderBrand = {
-//   obj_brand_id_selecting_criteria(self, obj_brand_id, frm, criteria, sort, evt) {
-//     const frmHeader = evt.detail.CurrentState.getHeaderForm()
-//     const partner_id = frmHeader.Inputs['agreementHeaderEdit-obj_partner_id']?.value
-//     if (partner_id) {
-//       criteria.partner_id = partner_id
-//     }
-//   }
-// }
+export const extenderBrand = {
+  obj_brand_id_selecting_criteria(self, obj_brand_id, frm, criteria, sort, evt) {
+    const frmHeader = evt.detail.CurrentState.getHeaderForm()
+    const partner_id = frmHeader.Inputs['agreementHeaderEdit-obj_partner_id']?.value
+    if (partner_id) {
+      criteria.partner_id = partner_id
+    }
+  }
+}
 export const extenderMargin = {
   obj_marginrange_id_selected(self, obj_marginrange_id, frm, evt) {
     // Data objek dari opsi marginrange yang dipilih

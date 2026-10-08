@@ -27,9 +27,9 @@ export async function headerOpen(self, db, data) {
     sqlUtil.lookupdb(db, "core.user", "user_id", commitby),
     sqlUtil.lookupdb(db, "core.user", "user_id", approveby),
     db.oneOrNone(
-      `select adendum_id from public.adendum 
+      `select adendum_id, adendum_seq from public.adendum 
        where agreement_id = $1 and isapprove = true 
-       order by approvedate desc, adendum_id desc limit 1`,
+       order by adendum_seq desc, adendum_id desc limit 1`,
       [agreement_id]
     )
   ]);
@@ -37,7 +37,8 @@ export async function headerOpen(self, db, data) {
   Object.assign(data, {
     commitby: commitbyuser ? commitbyuser.user_fullname : "",
     approveby: approvebyuser ? approvebyuser.user_fullname : "",
-    adendum_id: newAdendum ? newAdendum.adendum_id : ""
+    adendum_id: newAdendum ? newAdendum.adendum_id : "",
+    adendum_seq: newAdendum ? newAdendum.adendum_seq : ""
   });
 
   // const commitbyuser = await sqlUtil.lookupdb(db, 'core.user', 'user_id', commitby)

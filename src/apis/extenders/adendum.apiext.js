@@ -23,7 +23,7 @@ export async function headerCreated(self, tx, ret, data, logMetadata, args) {
     const prevAdendum = await tx.oneOrNone(
         `select adendum_id from public.adendum 
          where agreement_id = $1 and isapprove = true and adendum_id <> $2
-         order by approvedate desc, adendum_id desc limit 1`,
+         order by adendum_seq desc, adendum_id desc limit 1`,
         [agreement_id, adendum_id]
     )
 
