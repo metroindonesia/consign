@@ -8,15 +8,7 @@ const _dateend = "agreementHeaderEdit-obj_agreement_dateend";
 const _adendum_id = "agreementHeaderEdit-obj_adendum_id";
 const _adendum_seq = "agreementHeaderEdit-obj_adendum_seq";
 
-export const extenderHeader = {
-  obj_partner_id_selecting_criteria(self, obj_partner_id, frm, criteria, sort, evt) {
-    criteria.partner_isdisabled = false;
-  },
-
-  obj_site_id_selecting_criteria(self, obj_site_id, frm, criteria, sort, evt) {
-    criteria.site_isdisabled = false;
-  }
-};
+export const extenderHeader = null;
 
 export const extenderBrand = {
   obj_brand_id_selecting_criteria(self, obj_brand_id, frm, criteria, sort, evt) {
@@ -45,6 +37,15 @@ export const extenderMargin = {
     }
   },
 };
+
+// Top-level export - dipanggil oleh FGTA5 karena extenderHeader = null
+export function obj_partner_id_selecting_criteria(self, obj_partner_id, frm, criteria, sort, evt) {
+  criteria.partner_isdisabled = false;
+}
+
+export function obj_site_id_selecting_criteria(self, obj_site_id, frm, criteria, sort, evt) {
+  criteria.site_isdisabled = false;
+}
 
 const VIEW_VARIANCE = "view";
 

@@ -88,9 +88,26 @@ export async function headerCreated(self, tx, ret, data, logMetadata, args) {
         await cmd.execute(bdata)
     }
 }
+
+export async function headerCreating(self, tx, data) {
+    if (data.adendum_seq === '' || data.adendum_seq == null) {
+        data.adendum_seq = 0;
+    } else {
+        data.adendum_seq = parseInt(data.adendum_seq, 10) || 0;
+    }
+}
+
 export async function headerUpdating(self, tx, data) {
     const req = self.req;
     const user_id = req.session.user.userId;
+
+    if (data.adendum_seq !== undefined) {
+        if (data.adendum_seq === '' || data.adendum_seq == null) {
+            data.adendum_seq = 0;
+        } else {
+            data.adendum_seq = parseInt(data.adendum_seq, 10) || 0;
+        }
+    }
 
     if (data.iscommit && !data.commitby) {
         data.commitby = user_id;
@@ -103,7 +120,6 @@ export async function headerUpdating(self, tx, data) {
 }
 
 export async function headerOpen(self, db, data) {
-    // console.log("headerOpen", data);
     const commitby = data.commitby;
     const approveby = data.approveby;
 
@@ -125,13 +141,13 @@ export async function commit(self, db, body, adendum_log) {
     const startTime = process.hrtime.bigint();
 
     const sql = `
-		update public.adendum 
-		set 
-		iscommit = true,
-		commitby = $[commitby],
-		commitdate = now()
-		where adendum_id = $[adendum_id]
-	`;
+        update public.adendum 
+        set 
+        iscommit = true,
+        commitby = $[commitby],
+        commitdate = now()
+        where adendum_id = $[adendum_id]
+    `;
 
     await db.none(sql, {
         adendum_id: adendum_id,
@@ -158,13 +174,13 @@ export async function uncommit(self, db, body, adendum_log) {
     const startTime = process.hrtime.bigint();
 
     const sql = `
-		update public.adendum 
-		set   
-		iscommit = false,
-		commitby = $[commitby],
-		commitdate = now()
-		where adendum_id = $[adendum_id]
-	`;
+        update public.adendum 
+        set   
+        iscommit = false,
+        commitby = $[commitby],
+        commitdate = now()
+        where adendum_id = $[adendum_id]
+    `;
 
     await db.none(sql, {
         adendum_id: adendum_id,
@@ -191,13 +207,13 @@ export async function approve(self, db, body, adendum_log) {
     const startTime = process.hrtime.bigint();
 
     const sql = `
-		update public.adendum 
-		set 
-		isapprove = true,
-		approveby = $[approveby],
-		approvedate = now()
-		where adendum_id = $[adendum_id]
-	`;
+        update public.adendum 
+        set 
+        isapprove = true,
+        approveby = $[approveby],
+        approvedate = now()
+        where adendum_id = $[adendum_id]
+    `;
 
     await db.none(sql, {
         adendum_id: adendum_id,
@@ -224,13 +240,13 @@ export async function unapprove(self, db, body, adendum_log) {
     const startTime = process.hrtime.bigint();
 
     const sql = `
-		update public.adendum 
-		set 
-		isapprove = false,
-		approveby = $[approveby],
-		approvedate = now()
-		where adendum_id = $[adendum_id]
-	`;
+        update public.adendum 
+        set 
+        isapprove = false,
+        approveby = $[approveby],
+        approvedate = now()
+        where adendum_id = $[adendum_id]
+    `;
 
     await db.none(sql, {
         adendum_id: adendum_id,
@@ -254,4 +270,4 @@ export async function unapprove(self, db, body, adendum_log) {
 export function headerListCriteria(self, db, searchMap, criteria, sort, columns) {
     searchMap.agreement_id = 'agreement_id = ${agreement_id}'
     searchMap.isapprove = 'isapprove = ${isapprove}'
-}   
+}

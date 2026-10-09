@@ -6,14 +6,12 @@ const _dateend = "adendumHeaderEdit-obj_adendum_dateend"
 const _iscommit = "adendumHeaderEdit-obj_iscommit"
 const _isapprove = "adendumHeaderEdit-obj_isapprove"
 
-export const extenderHeader = {
-	obj_agreement_id_selecting_criteria(self, obj_agreement_id, frm, criteria, sort, evt) {
-		criteria.isapprove = true
-	},
-
-	obj_adendumtype_id_selecting_criteria(self, obj_adendumtype_id, frm, criteria, sort, evt) {
-		criteria.adendumtype_isdisabled = false
-	}
+export const extenderHeader = null
+export function obj_agreement_id_selecting_criteria(self, obj_agreement_id, frm, criteria, sort, evt) {
+	criteria.isapprove = true
+}
+export function obj_adendumtype_id_selecting_criteria(self, obj_adendumtype_id, frm, criteria, sort, evt) {
+	criteria.adendumtype_isdisabled = false
 }
 
 export const extenderBrand = {

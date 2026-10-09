@@ -2,9 +2,25 @@ import sqlUtil from "@agung_dhewe/pgsqlc";
 import db from "@agung_dhewe/webapps/src/db.js";
 import { createSequencerLine } from "@agung_dhewe/webapps/src/sequencerline.js";
 
+export async function headerCreating(self, tx, data) {
+  if (data.adendum_seq === "" || data.adendum_seq == null) {
+    data.adendum_seq = 0;
+  } else {
+    data.adendum_seq = parseInt(data.adendum_seq, 10) || 0;
+  }
+}
+
 export async function headerUpdating(self, tx, data) {
   const req = self.req;
   const user_id = req.session.user.userId;
+
+  if (data.adendum_seq !== undefined) {
+    if (data.adendum_seq === "" || data.adendum_seq == null) {
+      data.adendum_seq = 0;
+    } else {
+      data.adendum_seq = parseInt(data.adendum_seq, 10) || 0;
+    }
+  }
 
   if (data.iscommit && !data.commitby) {
     data.commitby = user_id;
@@ -37,8 +53,8 @@ export async function headerOpen(self, db, data) {
   Object.assign(data, {
     commitby: commitbyuser ? commitbyuser.user_fullname : "",
     approveby: approvebyuser ? approvebyuser.user_fullname : "",
-    adendum_id: newAdendum ? newAdendum.adendum_id : "",
-    adendum_seq: newAdendum ? newAdendum.adendum_seq : ""
+    adendum_id: newAdendum ? newAdendum.adendum_id : "0",
+    adendum_seq: newAdendum ? newAdendum.adendum_seq : 0
   });
 
   // const commitbyuser = await sqlUtil.lookupdb(db, 'core.user', 'user_id', commitby)
