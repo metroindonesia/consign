@@ -8,7 +8,7 @@ export async function headerCreated(self, tx, ret, data, logMetadata, args) {
     if (!agreement_id) return
 
     const seqResult = await tx.one(
-        `SELECT COUNT(*) + 1 AS seq 
+        `SELECT COALESCE(MAX(adendum_seq), 0) + 1 AS seq 
      FROM public.adendum 
      WHERE agreement_id = $1 
        AND adendum_id <> $2`,
@@ -254,4 +254,4 @@ export async function unapprove(self, db, body, adendum_log) {
 export function headerListCriteria(self, db, searchMap, criteria, sort, columns) {
     searchMap.agreement_id = 'agreement_id = ${agreement_id}'
     searchMap.isapprove = 'isapprove = ${isapprove}'
-}
+}   

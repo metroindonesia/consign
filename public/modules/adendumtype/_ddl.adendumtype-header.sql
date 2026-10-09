@@ -42,18 +42,18 @@ comment on column public."adendumtype".adendumtype_desc is '';
 
 
 -- =============================================
--- FIELD: adendum_isdisabled boolean
+-- FIELD: adendumtype_isdisabled boolean
 -- =============================================
--- ADD adendum_isdisabled
-alter table public."adendumtype" add adendum_isdisabled boolean not null default false;
-comment on column public."adendumtype".adendum_isdisabled is '';
+-- ADD adendumtype_isdisabled
+alter table public."adendumtype" add adendumtype_isdisabled boolean not null default false;
+comment on column public."adendumtype".adendumtype_isdisabled is '';
 
--- MODIFY adendum_isdisabled
+-- MODIFY adendumtype_isdisabled
 alter table public."adendumtype"
-	alter column adendum_isdisabled type boolean,
-	ALTER COLUMN adendum_isdisabled SET DEFAULT false,
-	ALTER COLUMN adendum_isdisabled SET NOT NULL;
-comment on column public."adendumtype".adendum_isdisabled is '';
+	alter column adendumtype_isdisabled type boolean,
+	ALTER COLUMN adendumtype_isdisabled SET DEFAULT false,
+	ALTER COLUMN adendumtype_isdisabled SET NOT NULL;
+comment on column public."adendumtype".adendumtype_isdisabled is '';
 
 
 -- =============================================

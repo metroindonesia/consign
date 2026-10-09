@@ -1,7 +1,7 @@
 {
   "appname": "consign",
   "name": "adendumtype",
-  "directory": "/home/ubuntu/Development/metroindonesia/consign",
+  "directory": "C:\\RZNIVE\\magang\\consign",
   "title": "Adendumtype",
   "description": "",
   "icon": "",
@@ -232,10 +232,10 @@
             "loadingdata": false
           }
         },
-        "adendum_isdisabled": {
+        "adendumtype_isdisabled": {
           "component": "Checkbox",
-          "data_fieldname": "adendum_isdisabled",
-          "name": "adendum_isdisabled",
+          "data_fieldname": "adendumtype_isdisabled",
+          "name": "adendumtype_isdisabled",
           "data_type": "boolean",
           "data_length": 0,
           "data_precision": 0,
@@ -243,7 +243,7 @@
           "input_multiline": false,
           "data_defaultvalue": 0,
           "description": "",
-          "input_name": "obj_adendum_isdisabled",
+          "input_name": "obj_adendumtype_isdisabled",
           "input_index": "0",
           "input_label": "Disabled",
           "input_placeholder": "",

@@ -6,13 +6,33 @@ const _dateend = "adendumHeaderEdit-obj_adendum_dateend"
 const _iscommit = "adendumHeaderEdit-obj_iscommit"
 const _isapprove = "adendumHeaderEdit-obj_isapprove"
 
-export const extenderHeader = null
+export const extenderHeader = {
+	obj_agreement_id_selecting_criteria(self, obj_agreement_id, frm, criteria, sort, evt) {
+		criteria.isapprove = true
+	},
+
+	obj_adendumtype_id_selecting_criteria(self, obj_adendumtype_id, frm, criteria, sort, evt) {
+		criteria.adendumtype_isdisabled = false
+	}
+}
+
+export const extenderBrand = {
+	obj_brand_id_selecting_criteria(self, obj_brand_id, frm, criteria, sort, evt) {
+		criteria.brand_isdisabled = false
+		const frmHeader = evt.detail.CurrentState.getHeaderForm()
+		const agreement_id = frmHeader.Inputs['adendumHeaderEdit-obj_agreement_id']?.value
+		if (agreement_id) {
+			criteria.agreement_id = agreement_id
+		}
+	}
+}
+
 const VIEW_VARIANCE = 'view'
 
 export async function init(self, args) {
 	console.log('initializing adendumExtender ...')
 
-	// tambahkan extender inisiasi module adendum
+	// tambahkan extender inisiasi module adendumF
 
 
 	/* // contoh menambahkan content dari template extender
@@ -269,18 +289,18 @@ export const extenderMargin = {
 	}
 }
 
-export const extenderBrand = {
-	async obj_brand_id_selecting_criteria(self, obj_brand_id, frm, criteria, sort, evt) {
-		const frmHeader = evt.detail.CurrentState.getHeaderForm()
-		const agreement_id = frmHeader.Inputs['adendumHeaderEdit-obj_agreement_id']?.value
-		if (!agreement_id) return
+// export const extenderBrand = {
+// 	async obj_brand_id_selecting_criteria(self, obj_brand_id, frm, criteria, sort, evt) {
+// 		const frmHeader = evt.detail.CurrentState.getHeaderForm()
+// 		const agreement_id = frmHeader.Inputs['adendumHeaderEdit-obj_agreement_id']?.value
+// 		if (!agreement_id) return
 
-		const result = await Module.apiCall('agreement/header-open', { id: agreement_id })
-		if (result?.partner_id) {
-			criteria.partner_id = result.partner_id
-		}
-	}
-}
+// 		const result = await Module.apiCall('agreement/header-open', { id: agreement_id })
+// 		if (result?.partner_id) {
+// 			criteria.partner_id = result.partner_id
+// 		}
+// 	}
+// }
 
 export async function adendumHeaderEdit_dataSaving(self, dataToSave, frm, args) {
 	const startDate = frm.Inputs[_datestart].value

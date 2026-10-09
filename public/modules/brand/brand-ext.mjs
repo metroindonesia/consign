@@ -1,7 +1,11 @@
 import Context from './brand-context.mjs'
 
 
-export const extenderHeader = null
+export const extenderHeader = {
+	obj_partner_id_selecting_criteria(self, obj_partner_id, frm, criteria, sort, evt) {
+		criteria.partner_isdisabled = false
+	}
+}
 
 
 

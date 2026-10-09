@@ -315,3 +315,7 @@ export async function getPrintData(self, db, body) {
     throw err;
   }
 }
+
+export function headerListCriteria(self, db, searchMap, criteria, sort, columns) {
+  searchMap.isapprove = 'isapprove = ${isapprove}'
+}
